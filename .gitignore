@@ -1,0 +1,13 @@
+# macOS
+.DS_Store
+
+# Local Claude Code config
+.claude/
+
+# Node / build artifacts (placeholders — uncomment as the stack lands)
+# node_modules/
+# .next/
+# dist/
+# build/
+# .env
+# .env.local
