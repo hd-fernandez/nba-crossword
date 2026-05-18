@@ -169,22 +169,31 @@ export function Grid({ puzzle, state, dispatch }: GridProps) {
             const isSelected =
               state.selectedCell?.row === r && state.selectedCell?.col === c;
             const isInActiveRun = activeRunKeys.has(key);
+            const isRevealed = state.revealed?.[r]?.[c] === true;
             const number = numbers.get(key);
             const letter = state.letters[r][c] ?? "";
+            // Reveal styling is layered behind selection/active-run so the
+            // user's current focus still reads first. A subtle warm tint
+            // plus a small corner dot is enough to differentiate.
             const bg = isSelected
               ? "#fff7a8" // active cell yellow
               : isInActiveRun
-                ? "#cfe6ff" // highlighted run blue
-                : "#ffffff";
+                ? isRevealed
+                  ? "#dde6ec" // run + revealed: cool gray-blue
+                  : "#cfe6ff" // run only: highlighted blue
+                : isRevealed
+                  ? "#fff5d6" // revealed at rest: warm cream
+                  : "#ffffff";
             return (
               <div
                 key={key}
                 role="gridcell"
                 aria-selected={isSelected}
-                aria-label={`row ${r + 1} column ${c + 1}${number ? `, entry ${number}` : ""}${letter ? `, ${letter}` : ", empty"}`}
+                aria-label={`row ${r + 1} column ${c + 1}${number ? `, entry ${number}` : ""}${letter ? `, ${letter}` : ", empty"}${isRevealed ? ", revealed" : ""}`}
                 data-testid={`cell-${r}-${c}`}
                 data-selected={isSelected ? "true" : undefined}
                 data-active-run={isInActiveRun ? "true" : undefined}
+                data-revealed={isRevealed ? "true" : undefined}
                 onClick={() => {
                   dispatch({ type: "selectCell", row: r, col: c });
                   focusGrid();
@@ -220,6 +229,21 @@ export function Grid({ puzzle, state, dispatch }: GridProps) {
                   >
                     {number}
                   </span>
+                )}
+                {isRevealed && (
+                  <span
+                    aria-hidden
+                    data-testid={`reveal-dot-${r}-${c}`}
+                    style={{
+                      position: "absolute",
+                      bottom: 3,
+                      right: 4,
+                      width: 5,
+                      height: 5,
+                      borderRadius: "50%",
+                      background: "#d39a00",
+                    }}
+                  />
                 )}
                 <span data-testid={`letter-${r}-${c}`}>{letter}</span>
               </div>

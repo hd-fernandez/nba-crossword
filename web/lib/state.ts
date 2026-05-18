@@ -35,6 +35,26 @@ export interface SolveState {
   direction: Direction;
   /** 5x5; null for blocks and for empty letter cells. */
   letters: (string | null)[][];
+  /**
+   * 5x5; true at letter cells that were filled by a reveal action (letter,
+   * word, or puzzle). Always false at blocks. Persists across further edits
+   * — once revealed, the share grid still shows the cell as 🟨.
+   */
+  revealed: boolean[][];
+  /**
+   * Timer anchor. `startedAt` is the epoch-ms when the running interval
+   * started; null while paused (or before first input). `accumulatedMs` is
+   * the elapsed time accrued during prior running intervals. Live elapsed =
+   * accumulatedMs + (now - startedAt) when running, else accumulatedMs.
+   */
+  startedAt: number | null;
+  accumulatedMs: number;
+  /**
+   * Set once when the puzzle is first detected complete (every letter cell
+   * matches the answer). Idempotent — further edits to `letters` don't
+   * unset or re-trigger it.
+   */
+  finishedAt: number | null;
 }
 
 export type SolveAction =
@@ -45,7 +65,14 @@ export type SolveAction =
   | { type: "backspace" }
   | { type: "arrow"; dRow: number; dCol: number }
   | { type: "nextEntry" }
-  | { type: "previousEntry" };
+  | { type: "previousEntry" }
+  | { type: "startTimer"; now: number }
+  | { type: "tick" }
+  | { type: "pauseTimer"; now: number }
+  | { type: "resumeTimer"; now: number }
+  | { type: "revealLetter" }
+  | { type: "revealWord" }
+  | { type: "revealPuzzle" };
 
 // ---------------------------------------------------------------------------
 // Cell helpers
@@ -192,6 +219,11 @@ export function makeEmptyLetters(grid: Grid): (string | null)[][] {
   return grid.cells.map((row) => row.map(() => null));
 }
 
+/** Build a 5x5 boolean grid initialized to false at every cell. */
+export function makeEmptyRevealed(grid: Grid): boolean[][] {
+  return grid.cells.map((row) => row.map(() => false));
+}
+
 /** Find the first letter cell scanning left-to-right, top-to-bottom. */
 export function findFirstLetterCell(grid: Grid): CellPos | null {
   for (let r = 0; r < GRID_SIZE; r++) {
@@ -208,7 +240,36 @@ export function initialState(puzzle: Puzzle): SolveState {
     selectedCell: first,
     direction: "across",
     letters: makeEmptyLetters(puzzle.grid),
+    revealed: makeEmptyRevealed(puzzle.grid),
+    startedAt: null,
+    accumulatedMs: 0,
+    finishedAt: null,
   };
+}
+
+/** Whether every letter cell in `letters` matches the puzzle's answer key. */
+export function isPuzzleSolved(puzzle: Puzzle, letters: (string | null)[][]): boolean {
+  for (let r = 0; r < GRID_SIZE; r++) {
+    for (let c = 0; c < GRID_SIZE; c++) {
+      const cell = puzzle.grid.cells[r][c];
+      if (!isLetter(cell)) continue;
+      if (letters[r][c] !== cell.answer) return false;
+    }
+  }
+  return true;
+}
+
+/** Live elapsed time, accounting for whether the timer is running. */
+export function elapsedMs(state: SolveState, now: number): number {
+  if (state.finishedAt !== null) {
+    // After finish, freeze the displayed time at the moment of completion.
+    if (state.startedAt !== null) {
+      return state.accumulatedMs + (state.finishedAt - state.startedAt);
+    }
+    return state.accumulatedMs;
+  }
+  if (state.startedAt === null) return state.accumulatedMs;
+  return state.accumulatedMs + (now - state.startedAt);
 }
 
 // ---------------------------------------------------------------------------
@@ -295,8 +356,45 @@ export function sortedEntriesForNav(puzzle: Puzzle): Entry[] {
 // Reducer
 // ---------------------------------------------------------------------------
 
+/**
+ * After every action that might affect `letters`, check whether the puzzle
+ * is now complete and stamp `finishedAt` exactly once. Once set, this never
+ * un-sets — further edits don't re-trigger or reset the finish.
+ *
+ * If `finishedAt` is set this call also freezes the running timer at the
+ * completion moment by folding `(finishedAt - startedAt)` into
+ * `accumulatedMs` and clearing `startedAt`. That way a tick after finish
+ * doesn't keep advancing the displayed time.
+ */
+function withFinishCheck(
+  puzzle: Puzzle,
+  state: SolveState,
+  now: number,
+): SolveState {
+  if (state.finishedAt !== null) return state; // idempotent
+  if (!isPuzzleSolved(puzzle, state.letters)) return state;
+  let accumulatedMs = state.accumulatedMs;
+  let startedAt: number | null = state.startedAt;
+  if (startedAt !== null) {
+    accumulatedMs = accumulatedMs + (now - startedAt);
+    startedAt = null;
+  }
+  return {
+    ...state,
+    finishedAt: now,
+    startedAt,
+    accumulatedMs,
+  };
+}
+
 export function solveReducer(
   puzzle: Puzzle,
+  /**
+   * Time source. Defaults to `Date.now`; tests can inject a deterministic
+   * clock without monkey-patching globals. Called once per action that
+   * needs a timestamp (timer transitions and finish stamping).
+   */
+  nowFn: () => number = () => Date.now(),
 ): (state: SolveState, action: SolveAction) => SolveState {
   return (state, action) => {
     switch (action.type) {
@@ -338,11 +436,19 @@ export function solveReducer(
         const newLetters = state.letters.map((r) => r.slice());
         newLetters[row][col] = letter;
         const next = nextCellInRun(puzzle.grid, row, col, state.direction);
-        return {
+        const now = nowFn();
+        // Auto-start the timer on first input. If already running, leave it.
+        const startedAt =
+          state.startedAt === null && state.finishedAt === null
+            ? now
+            : state.startedAt;
+        const advanced: SolveState = {
           ...state,
           letters: newLetters,
           selectedCell: next ?? state.selectedCell,
+          startedAt,
         };
+        return withFinishCheck(puzzle, advanced, now);
       }
 
       case "backspace": {
@@ -409,6 +515,116 @@ export function solveReducer(
           selectedCell: { row: target.row, col: target.col },
           direction: target.direction,
         };
+      }
+
+      case "startTimer": {
+        // Idempotent: only sets startedAt if not already running.
+        if (state.startedAt !== null || state.finishedAt !== null) return state;
+        return { ...state, startedAt: action.now };
+      }
+
+      case "tick": {
+        // No-op state change — used solely as a re-render trigger when the
+        // Timer component wants to refresh the displayed elapsed value.
+        // Returning the same reference would skip re-renders, so we return
+        // a shallow copy. Most consumers should rely on Timer's own
+        // setInterval rather than dispatching this.
+        return { ...state };
+      }
+
+      case "pauseTimer": {
+        if (state.startedAt === null) return state; // already paused
+        if (state.finishedAt !== null) return state; // finished — no-op
+        const accumulatedMs = state.accumulatedMs + (action.now - state.startedAt);
+        return { ...state, startedAt: null, accumulatedMs };
+      }
+
+      case "resumeTimer": {
+        // Resume only resumes if the timer was previously started (i.e.,
+        // there is accumulated time OR the user has typed at least one
+        // letter). Don't auto-start before first input.
+        if (state.startedAt !== null) return state; // already running
+        if (state.finishedAt !== null) return state; // finished — no-op
+        if (state.accumulatedMs === 0) return state; // never started
+        return { ...state, startedAt: action.now };
+      }
+
+      case "revealLetter": {
+        if (!state.selectedCell) return state;
+        const { row, col } = state.selectedCell;
+        const cell = getCell(puzzle.grid, row, col);
+        if (!cell || !isLetter(cell)) return state;
+        const newLetters = state.letters.map((r) => r.slice());
+        const newRevealed = state.revealed.map((r) => r.slice());
+        newLetters[row][col] = cell.answer;
+        newRevealed[row][col] = true;
+        const now = nowFn();
+        const startedAt =
+          state.startedAt === null && state.finishedAt === null
+            ? now
+            : state.startedAt;
+        return withFinishCheck(
+          puzzle,
+          { ...state, letters: newLetters, revealed: newRevealed, startedAt },
+          now,
+        );
+      }
+
+      case "revealWord": {
+        if (!state.selectedCell) return state;
+        const entry = findActiveEntry(
+          puzzle,
+          state.selectedCell.row,
+          state.selectedCell.col,
+          state.direction,
+        );
+        if (!entry) return state;
+        const newLetters = state.letters.map((r) => r.slice());
+        const newRevealed = state.revealed.map((r) => r.slice());
+        for (let i = 0; i < entry.answer.length; i++) {
+          const r = entry.row + (entry.direction === "down" ? i : 0);
+          const c = entry.col + (entry.direction === "across" ? i : 0);
+          newLetters[r][c] = entry.answer[i];
+          newRevealed[r][c] = true;
+        }
+        const now = nowFn();
+        const startedAt =
+          state.startedAt === null && state.finishedAt === null
+            ? now
+            : state.startedAt;
+        return withFinishCheck(
+          puzzle,
+          { ...state, letters: newLetters, revealed: newRevealed, startedAt },
+          now,
+        );
+      }
+
+      case "revealPuzzle": {
+        const newLetters = state.letters.map((r) => r.slice());
+        const newRevealed = state.revealed.map((r) => r.slice());
+        for (let r = 0; r < GRID_SIZE; r++) {
+          for (let c = 0; c < GRID_SIZE; c++) {
+            const cell = puzzle.grid.cells[r][c];
+            if (!isLetter(cell)) continue;
+            // Only mark cells the user hadn't already filled correctly.
+            // (If they filled it correctly themselves, no need to flag it
+            // as revealed in the share grid.)
+            if (newLetters[r][c] !== cell.answer) {
+              newLetters[r][c] = cell.answer;
+              newRevealed[r][c] = true;
+            }
+          }
+        }
+        const now = nowFn();
+        const startedAt =
+          state.startedAt === null && state.finishedAt === null
+            ? now
+            : state.startedAt;
+        return withFinishCheck(
+          puzzle,
+          { ...state, letters: newLetters, revealed: newRevealed, startedAt },
+          now,
+        );
       }
     }
   };
