@@ -1,7 +1,10 @@
 "use client";
 
+import { useState } from "react";
+
 import type { Puzzle } from "@/lib/puzzle";
 import { formatElapsed } from "@/lib/share";
+import { computeStreak, recordCompletion } from "@/lib/storage";
 import { Share } from "./Share";
 
 interface FinishScreenProps {
@@ -9,10 +12,18 @@ interface FinishScreenProps {
   elapsedMs: number;
   revealed: boolean[][];
   /**
-   * Streak count to display. v0 hardcodes 1 from the page; U12 wires the
-   * real localStorage-backed value.
+   * Optional override for the displayed streak count. When provided, the
+   * FinishScreen is purely presentational — it does NOT touch localStorage.
+   * This is the path tests use to render the screen with a known streak.
+   *
+   * When omitted (the production path from `<HomePage>`), the FinishScreen
+   * is responsible for *recording* today's completion and computing the
+   * resulting streak. We do this in a `useState` initializer so the side
+   * effect runs exactly once per mount — refreshing the page after
+   * completion is therefore idempotent (the date is already in
+   * `completedDates`).
    */
-  streak: number;
+  streak?: number;
 }
 
 /**
@@ -30,6 +41,18 @@ export function FinishScreen({
   revealed,
   streak,
 }: FinishScreenProps) {
+  // If the caller supplied an explicit streak, treat the component as a
+  // pure render and don't touch localStorage at all. Otherwise: record the
+  // completion and compute the streak once on mount. `useState` with an
+  // initializer guarantees this runs exactly once, even under StrictMode's
+  // double-render in development (the initializer itself is invoked once).
+  const [computedStreak] = useState<number>(() => {
+    if (streak !== undefined) return streak;
+    const next = recordCompletion(puzzle.date);
+    return computeStreak(next, puzzle.date);
+  });
+  const displayStreak = streak !== undefined ? streak : computedStreak;
+
   return (
     <div
       role="dialog"
@@ -98,7 +121,7 @@ export function FinishScreen({
           <div>
             <dt style={statLabel}>Streak</dt>
             <dd data-testid="finish-streak" style={statValue}>
-              {streak}
+              {displayStreak}
             </dd>
           </div>
         </dl>
