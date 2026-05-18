@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>NBA Mini — Brainstorm Mockups</title>
+  <style>
+    :root {
+      --bg: #f7f7f5;
+      --ink: #121212;
+      --muted: #6b6b6b;
+      --line: #d9d9d6;
+      --accent: #c8102e; /* nba red, placeholder */
+      --cell: #ffffff;
+      --cell-active: #fff7a8;
+      --cell-highlight: #cfe6ff;
+      --cell-block: #121212;
+      --radius: 8px;
+      --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+      --font-serif: "Iowan Old Style", "Charter", "Georgia", "Times New Roman", serif;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; background: var(--bg); color: var(--ink); font-family: var(--font-sans); -webkit-font-smoothing: antialiased; }
+    .page { max-width: 1100px; margin: 0 auto; padding: 32px 20px 80px; }
+    header.top { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 8px; }
+    header.top h1 { font-family: var(--font-serif); font-weight: 700; font-size: 28px; margin: 0; letter-spacing: -0.01em; }
+    header.top .date { color: var(--muted); font-size: 13px; }
+    .lede { color: var(--muted); margin: 0 0 28px; font-size: 14px; }
+    .grid-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+    @media (max-width: 880px) { .grid-row { grid-template-columns: 1fr; } }
+    .panel {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 20px;
+    }
+    .panel h2 { font-family: var(--font-serif); font-size: 18px; margin: 0 0 4px; }
+    .panel .sub { color: var(--muted); font-size: 12px; margin: 0 0 16px; text-transform: uppercase; letter-spacing: 0.08em; }
+
+    /* Crossword grid */
+    .xword {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 2px;
+      background: #121212;
+      border: 2px solid #121212;
+      width: 100%;
+      max-width: 360px;
+      aspect-ratio: 1 / 1;
+      margin: 0 auto 16px;
+    }
+    .cell {
+      background: var(--cell);
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-serif);
+      font-weight: 700;
+      font-size: 22px;
+      user-select: none;
+    }
+    .cell.block { background: var(--cell-block); }
+    .cell.active { background: var(--cell-active); }
+    .cell.row-highlight { background: var(--cell-highlight); }
+    .cell .num {
+      position: absolute;
+      top: 2px;
+      left: 4px;
+      font-family: var(--font-sans);
+      font-size: 10px;
+      font-weight: 600;
+      color: #444;
+    }
+
+    /* Clue strip */
+    .clue {
+      background: #f1efe8;
+      border-radius: 6px;
+      padding: 10px 12px;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .clue .tag { font-size: 11px; font-weight: 700; color: var(--accent); letter-spacing: 0.05em; }
+    .clue .text { flex: 1; }
+
+    /* Stats / share */
+    .timer {
+      font-family: var(--font-serif);
+      font-size: 56px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      text-align: center;
+      margin: 8px 0 4px;
+    }
+    .timer-label { text-align: center; color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 16px; }
+    .share-card {
+      border: 1px dashed var(--line);
+      border-radius: 6px;
+      padding: 14px 16px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 12px;
+      white-space: pre;
+      color: #333;
+      background: #fafaf7;
+    }
+    .streak {
+      display: flex; gap: 6px; justify-content: center; margin-top: 16px;
+    }
+    .streak .dot {
+      width: 18px; height: 18px; border-radius: 50%; background: #e6e6e1; border: 1px solid var(--line);
+      display: flex; align-items: center; justify-content: center; font-size: 9px; color: #999;
+    }
+    .streak .dot.done { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+    /* Notes block */
+    .notes { margin-top: 32px; padding: 16px 20px; background: #fff; border: 1px solid var(--line); border-radius: var(--radius); }
+    .notes h3 { margin: 0 0 8px; font-family: var(--font-serif); font-size: 16px; }
+    .notes ul { margin: 0; padding-left: 18px; color: var(--muted); font-size: 13px; line-height: 1.6; }
+
+    .footer { margin-top: 32px; color: var(--muted); font-size: 11px; text-align: center; }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header class="top">
+      <h1>The NBA Mini</h1>
+      <div class="date">Friday, May 15</div>
+    </header>
+    <p class="lede">Skeleton mockup — placeholder grid, clue, share card. We'll iterate as we make decisions.</p>
+
+    <div class="grid-row">
+      <!-- Play screen -->
+      <section class="panel">
+        <h2>Daily Puzzle</h2>
+        <p class="sub">5×5 · today's slate</p>
+
+        <div class="xword" aria-label="5x5 mini crossword grid">
+          <!-- row 1 -->
+          <div class="cell"><span class="num">1</span></div>
+          <div class="cell"><span class="num">2</span></div>
+          <div class="cell"><span class="num">3</span></div>
+          <div class="cell block"></div>
+          <div class="cell"><span class="num">4</span></div>
+          <!-- row 2 -->
+          <div class="cell"><span class="num">5</span></div>
+          <div class="cell row-highlight"></div>
+          <div class="cell row-highlight"></div>
+          <div class="cell row-highlight active"></div>
+          <div class="cell row-highlight"></div>
+          <!-- row 3 -->
+          <div class="cell"><span class="num">6</span></div>
+          <div class="cell"></div>
+          <div class="cell"></div>
+          <div class="cell"></div>
+          <div class="cell"></div>
+          <!-- row 4 -->
+          <div class="cell block"></div>
+          <div class="cell"><span class="num">7</span></div>
+          <div class="cell"></div>
+          <div class="cell"></div>
+          <div class="cell"></div>
+          <!-- row 5 -->
+          <div class="cell"><span class="num">8</span></div>
+          <div class="cell"></div>
+          <div class="cell"></div>
+          <div class="cell"></div>
+          <div class="cell block"></div>
+        </div>
+
+        <div class="clue">
+          <span class="tag">5A</span>
+          <span class="text">Dropped 40 on BOS last night. (5)</span>
+        </div>
+      </section>
+
+      <!-- Share / streak screen -->
+      <section class="panel">
+        <h2>Solved</h2>
+        <p class="sub">Share-your-time</p>
+
+        <div class="timer">1:24</div>
+        <div class="timer-label">Today's solve</div>
+
+        <div class="share-card">The NBA Mini · May 15
+Solved in 1:24
+🟩🟩🟩🟩🟩
+🟩🟩🟩🟩🟩
+🟩🟩🟩🟩🟩
+🟩🟩🟩🟩🟩
+🟩🟩🟩🟩🟩
+nbamini.app</div>
+
+        <div class="streak" aria-label="7-day streak">
+          <div class="dot done">M</div>
+          <div class="dot done">T</div>
+          <div class="dot done">W</div>
+          <div class="dot done">T</div>
+          <div class="dot done">F</div>
+          <div class="dot">S</div>
+          <div class="dot">S</div>
+        </div>
+      </section>
+    </div>
+
+    <div class="notes">
+      <h3>Open questions parked here as we go</h3>
+      <ul>
+        <li>Grid size — 5×5 placeholder; real shape TBD.</li>
+        <li>Clue voice & length — placeholder is "Dropped 40 on BOS last night."</li>
+        <li>Share format — emoji block placeholder, NYT-style.</li>
+        <li>Branding — type and color are placeholder, not committed.</li>
+      </ul>
+    </div>
+
+    <p class="footer">context-engineering/brainstorms/mockups · NBA Mini · iterating</p>
+  </div>
+</body>
+</html>
