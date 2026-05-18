@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "sync-puzzles": "node scripts/sync-puzzles.mjs",
+    "predev": "node scripts/sync-puzzles.mjs",
+    "prebuild": "node scripts/sync-puzzles.mjs",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",

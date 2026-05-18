@@ -163,3 +163,47 @@ export type Puzzle = z.infer<typeof PuzzleSchema>;
 export function parsePuzzle(raw: unknown): Puzzle {
   return PuzzleSchema.parse(raw);
 }
+
+/**
+ * Today's date in US/Eastern, formatted YYYY-MM-DD.
+ *
+ * The NBA day boundary lines up with ET (per U4 / R6). We do this client-side
+ * with Intl.DateTimeFormat so it tracks the user's wall-clock perception of
+ * "today's puzzle" regardless of their device locale.
+ */
+export function todayInEastern(now: Date = new Date()): string {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/New_York",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(now);
+  const get = (t: string) => parts.find((p) => p.type === t)?.value ?? "";
+  return `${get("year")}-${get("month")}-${get("day")}`;
+}
+
+/**
+ * Fetch today's puzzle JSON.
+ *
+ * Returns `null` on 404 — the frontend treats that as the dormant "no puzzle
+ * today" state (R6 / AE3). Any other failure (malformed JSON, schema
+ * violation, network error) throws so the caller can surface a real error.
+ *
+ * Puzzles are served as static files at `/puzzles/<date>.json`. The
+ * canonical source is the repo-root `puzzles/` directory; `scripts/sync-puzzles.mjs`
+ * copies that into `web/public/puzzles/` on `predev` and `prebuild`.
+ */
+export async function fetchTodayPuzzle(
+  date: string = todayInEastern(),
+  fetchImpl: typeof fetch = fetch,
+): Promise<Puzzle | null> {
+  const res = await fetchImpl(`/puzzles/${date}.json`, {
+    cache: "no-store",
+  });
+  if (res.status === 404) return null;
+  if (!res.ok) {
+    throw new Error(`failed to fetch puzzle for ${date}: HTTP ${res.status}`);
+  }
+  const raw = await res.json();
+  return parsePuzzle(raw);
+}
