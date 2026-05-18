@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Placeholder icon for The NBA Mini PWA.
+  - 512x512 viewBox so it works as both 192x192 and 512x512 maskable / any-purpose icon.
+  - Single SVG references the brand palette declared in manifest.webmanifest:
+    background_color #f7f7f5 (cream) and theme_color #c8102e (NBA red).
+  - Replace with branded raster assets (icon-192.png, icon-512.png, apple-touch-icon.png)
+    before public launch. See ./README.md.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- App background tile (cream paper, matches manifest background_color) -->
+  <rect width="512" height="512" rx="96" ry="96" fill="#f7f7f5"/>
+
+  <!-- Basketball: orange disc with classic seams -->
+  <g transform="translate(256 256)">
+    <circle r="180" fill="#e07a26"/>
+    <!-- Outline + vertical seam -->
+    <circle r="180" fill="none" stroke="#1f1f1f" stroke-width="10"/>
+    <line x1="0" y1="-180" x2="0" y2="180" stroke="#1f1f1f" stroke-width="10"/>
+    <!-- Horizontal seam (slight curve) -->
+    <path d="M-180 0 Q0 50 180 0" fill="none" stroke="#1f1f1f" stroke-width="10"/>
+    <!-- Two diagonal seams that arc from the rim into the center band -->
+    <path d="M-127 -127 Q-30 -30 -127 127" fill="none" stroke="#1f1f1f" stroke-width="10"/>
+    <path d="M127 -127 Q30 -30 127 127" fill="none" stroke="#1f1f1f" stroke-width="10"/>
+  </g>
+
+  <!-- "M" mark in NBA red, centered over the basketball.
+       Stroke + fill for crispness at small sizes. -->
+  <text
+    x="256"
+    y="312"
+    text-anchor="middle"
+    font-family="Iowan Old Style, Charter, Georgia, serif"
+    font-weight="900"
+    font-size="220"
+    fill="#c8102e"
+    stroke="#1f1f1f"
+    stroke-width="6"
+    paint-order="stroke fill">M</text>
+</svg>
