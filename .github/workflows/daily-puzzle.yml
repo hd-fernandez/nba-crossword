@@ -1,0 +1,97 @@
+name: Daily Puzzle
+
+# Generates the day's NBA mini crossword and commits it to main.
+#
+# Trigger: 10:00 UTC daily — that's 06:00 ET in summer (EDT, UTC-4) and
+# 05:00 ET in winter (EST, UTC-5). The plan accepts this DST drift for v0.
+# Manual dispatch is also available for backfills and recovery.
+
+on:
+  schedule:
+    - cron: "0 10 * * *"
+  workflow_dispatch:
+    inputs:
+      date:
+        description: "ISO date (YYYY-MM-DD) for the slate to ingest. Empty = yesterday in US/Eastern."
+        required: false
+        default: ""
+      force:
+        description: "Overwrite an existing puzzle file for that date."
+        required: false
+        type: boolean
+        default: false
+
+# Push the freshly generated puzzle JSON back to main with the workflow's
+# default GITHUB_TOKEN.
+permissions:
+  contents: write
+
+# A manual dispatch should never race the cron. We don't cancel an in-flight
+# run — we'd rather queue and let the running generation finish.
+concurrency:
+  group: daily-puzzle
+  cancel-in-progress: false
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          # Required so the final `git push` reuses GITHUB_TOKEN credentials.
+          persist-credentials: true
+
+      - name: Set up uv (with Python 3.12)
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: latest
+          # Pipeline pyproject.toml requires-python = ">=3.12". Pin explicitly
+          # so a future uv default change doesn't silently move us off 3.12.
+          python-version: "3.12"
+
+      - name: Install pipeline dependencies
+        working-directory: pipeline
+        run: uv sync --extra dev
+
+      - name: Generate today's puzzle
+        working-directory: pipeline
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          set -euo pipefail
+          ARGS=()
+          if [ -n "${{ inputs.date }}" ]; then
+            ARGS+=(--date "${{ inputs.date }}")
+          fi
+          if [ "${{ inputs.force }}" = "true" ]; then
+            ARGS+=(--force)
+          fi
+          # cwd is pipeline/, so ../puzzles points at the repo-root puzzles/.
+          uv run python -m nba_mini.generate --out ../puzzles "${ARGS[@]}"
+
+      - name: Commit and push if a new puzzle was written
+        run: |
+          set -euo pipefail
+          if [ -z "$(git status --porcelain puzzles/)" ]; then
+            echo "No puzzle changes in puzzles/ — likely a no-games day or an idempotent re-run. Nothing to commit."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add puzzles/
+          # Recover the date from the staged JSON filename rather than trusting
+          # alphabetical ordering — this works correctly for both cron runs and
+          # workflow_dispatch backfills of older dates.
+          PUZZLE_FILE="$(git diff --name-only --cached -- 'puzzles/*.json' | head -n 1)"
+          if [ -z "$PUZZLE_FILE" ]; then
+            echo "puzzles/ changed but no JSON file was staged — refusing to commit."
+            exit 1
+          fi
+          DATE="$(basename "$PUZZLE_FILE" .json)"
+
+          git commit -m "chore(puzzles): add ${DATE}"
+          git push
