@@ -1,0 +1,50 @@
+[
+  {
+    "kind": "Listing",
+    "data": {
+      "children": [
+        {
+          "kind": "t3",
+          "data": {
+            "id": "post_b",
+            "title": "Highlight: LeBron's 40th point — a stepback over Tatum"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "kind": "Listing",
+    "data": {
+      "children": [
+        {
+          "kind": "t1",
+          "data": {
+            "id": "c_b1",
+            "body": "He's 41 years old. This is absurd.",
+            "score": 2300,
+            "author": "fan1"
+          }
+        },
+        {
+          "kind": "t1",
+          "data": {
+            "id": "c_b2",
+            "body": "Tatum's defense was actually decent here, just a tough shot.",
+            "score": 1890,
+            "author": "fan2"
+          }
+        },
+        {
+          "kind": "t1",
+          "data": {
+            "id": "c_b3",
+            "body": "Stepback into a fade. Unguardable.",
+            "score": 1502,
+            "author": "fan3"
+          }
+        }
+      ]
+    }
+  }
+]

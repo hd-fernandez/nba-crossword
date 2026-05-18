@@ -1,0 +1,84 @@
+[
+  {
+    "kind": "Listing",
+    "data": {
+      "children": [
+        {
+          "kind": "t3",
+          "data": {
+            "id": "post_a",
+            "title": "[Post Game Thread] The Lakers defeat the Celtics 118-114"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "kind": "Listing",
+    "data": {
+      "children": [
+        {
+          "kind": "t1",
+          "data": {
+            "id": "c_a1",
+            "body": "LeBron in May. Unreal.",
+            "score": 5421,
+            "author": "celticsfan99"
+          }
+        },
+        {
+          "kind": "t1",
+          "data": {
+            "id": "c_a2",
+            "body": "[deleted]",
+            "score": 200,
+            "author": "[deleted]"
+          }
+        },
+        {
+          "kind": "t1",
+          "data": {
+            "id": "c_a3",
+            "body": "Tatum 38/9/8 in a loss is wild.",
+            "score": 4012,
+            "author": "stat_nerd"
+          }
+        },
+        {
+          "kind": "t1",
+          "data": {
+            "id": "c_a4",
+            "body": "[removed]",
+            "score": 50,
+            "author": "lakerfan"
+          }
+        },
+        {
+          "kind": "t1",
+          "data": {
+            "id": "c_a5",
+            "body": "AD with the block of the playoffs to seal it.",
+            "score": 3210,
+            "author": "purple_and_gold"
+          }
+        },
+        {
+          "kind": "t1",
+          "data": {
+            "id": "c_a6",
+            "body": "TD Garden was silent at the end.",
+            "score": 1820,
+            "author": "boston_observer"
+          }
+        },
+        {
+          "kind": "more",
+          "data": {
+            "id": "more_replies",
+            "count": 25
+          }
+        }
+      ]
+    }
+  }
+]
