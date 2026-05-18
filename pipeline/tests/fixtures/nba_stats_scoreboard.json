@@ -1,0 +1,23 @@
+{
+  "_comment": "Hand-crafted slim scoreboardv2 response. Mirrors the real nba.com shape (resultSets with named tables, headers + rowSet) without depending on a recorded production payload. Two regulation games to exercise the multi-game happy path; tests trim or extend it for other scenarios.",
+  "resultSets": [
+    {
+      "name": "GameHeader",
+      "headers": ["GAME_DATE_EST", "GAME_ID", "GAME_STATUS_TEXT", "HOME_TEAM_ID", "VISITOR_TEAM_ID", "LIVE_PERIOD"],
+      "rowSet": [
+        ["2026-05-14T00:00:00", "0042500301", "Final", 1610612738, 1610612752, 4],
+        ["2026-05-14T00:00:00", "0042500302", "Final", 1610612743, 1610612747, 4]
+      ]
+    },
+    {
+      "name": "LineScore",
+      "headers": ["GAME_ID", "TEAM_ID", "TEAM_ABBREVIATION", "TEAM_CITY_NAME", "TEAM_NAME", "PTS", "LIVE_PERIOD"],
+      "rowSet": [
+        ["0042500301", 1610612738, "BOS", "Boston", "Celtics", 112, 4],
+        ["0042500301", 1610612752, "NYK", "New York", "Knicks", 105, 4],
+        ["0042500302", 1610612743, "DEN", "Denver", "Nuggets", 124, 4],
+        ["0042500302", 1610612747, "LAL", "Los Angeles", "Lakers", 96, 4]
+      ]
+    }
+  ]
+}

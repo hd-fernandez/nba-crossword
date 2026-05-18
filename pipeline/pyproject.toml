@@ -6,6 +6,7 @@ requires-python = ">=3.12"
 dependencies = [
     "pydantic>=2.7",
     "requests>=2.31",
+    "nba_api>=1.4",
 ]
 
 [project.optional-dependencies]
