@@ -3,7 +3,7 @@ title: "feat: NBA Mini v0 — daily puzzle PWA + automated generation pipeline"
 type: feat
 status: active
 date: 2026-05-17
-origin: context-engineering/brainstorms/2026-05-15-nyt-nba-crossword-design.md
+origin: compound-engineering/brainstorms/2026-05-15-nyt-nba-crossword-design.md
 ---
 
 # feat: NBA Mini v0 — daily puzzle PWA + automated generation pipeline
@@ -70,14 +70,14 @@ This is a greenfield repo. The only existing artifacts are:
 
 - [README.md](../../README.md) — placeholder
 - [CLAUDE.md](../../CLAUDE.md) — project instructions, CE folder overrides
-- [context-engineering/brainstorms/2026-05-15-nyt-nba-crossword-design.md](../brainstorms/2026-05-15-nyt-nba-crossword-design.md) — origin document
-- [context-engineering/brainstorms/mockups/index.html](../brainstorms/mockups/index.html) — visual companion, can inform initial frontend styling
+- [compound-engineering/brainstorms/2026-05-15-nyt-nba-crossword-design.md](../brainstorms/2026-05-15-nyt-nba-crossword-design.md) — origin document
+- [compound-engineering/brainstorms/mockups/index.html](../brainstorms/mockups/index.html) — visual companion, can inform initial frontend styling
 
 No existing patterns to follow. The plan establishes them.
 
 ### Institutional Learnings
 
-`context-engineering/solutions/` is empty. As patterns emerge during v0 (e.g., reliable nba.com fetch shape, prompt structures that produce good clues), `ce-compound` should write learnings here.
+`compound-engineering/solutions/` is empty. As patterns emerge during v0 (e.g., reliable nba.com fetch shape, prompt structures that produce good clues), `ce-compound` should write learnings here.
 
 ### External References
 
@@ -110,7 +110,7 @@ External research deferred to implementation — the choices below are conventio
 ### Resolved During Planning
 
 - *Should v0 ship the LLM judge?* — No. v0 generates one puzzle and ships. v0.5 introduces N candidates + judge. (Confirmed with user.)
-- *Where do plans live?* — `context-engineering/plans/` per repo CLAUDE.md override.
+- *Where do plans live?* — `compound-engineering/plans/` per repo CLAUDE.md override.
 
 ### Deferred to Implementation
 
@@ -610,7 +610,7 @@ The implementer may adjust this layout if implementation reveals a better one. P
 - Keyboard handling: arrow keys move, letter keys enter, backspace deletes & moves back, space toggles direction (across↔down), tab moves to next entry.
 - Touch: tap a cell to select; tap again to flip direction. Visible numbers on cells that start an entry.
 
-**Patterns to follow:** The visual companion at [context-engineering/brainstorms/mockups/index.html](../brainstorms/mockups/index.html) for layout + colors.
+**Patterns to follow:** The visual companion at [compound-engineering/brainstorms/mockups/index.html](../brainstorms/mockups/index.html) for layout + colors.
 
 **Test scenarios:**
 - Happy path: rendering a valid puzzle JSON shows a 5×5 grid with the right black squares and entry numbers.
@@ -777,13 +777,13 @@ The implementer may adjust this layout if implementation reveals a better one. P
 - Add a one-page `pipeline/README.md` covering local dev (`uv sync`, `python -m nba_mini.generate --date <past-date> --dry-run`).
 - Add a one-page `web/README.md` covering local dev (`npm run dev`, env, Vercel deploy notes).
 - Operational runbook: a small `OPERATIONS.md` (or `runbook.md`) at repo root listing: how to manually trigger the workflow for a missed day, how to roll back a bad puzzle (`git revert` the commit and trigger a fresh run with `--force`), how to update season context.
-- After v0 ships, plan to write `context-engineering/solutions/best-practices/clue-prompt-iterations-2026-XX-XX.md` capturing prompt patterns that produced good clues.
+- After v0 ships, plan to write `compound-engineering/solutions/best-practices/clue-prompt-iterations-2026-XX-XX.md` capturing prompt patterns that produced good clues.
 
 ---
 
 ## Sources & References
 
-- **Origin document:** [context-engineering/brainstorms/2026-05-15-nyt-nba-crossword-design.md](../brainstorms/2026-05-15-nyt-nba-crossword-design.md)
-- **Visual companion:** [context-engineering/brainstorms/mockups/index.html](../brainstorms/mockups/index.html)
+- **Origin document:** [compound-engineering/brainstorms/2026-05-15-nyt-nba-crossword-design.md](../brainstorms/2026-05-15-nyt-nba-crossword-design.md)
+- **Visual companion:** [compound-engineering/brainstorms/mockups/index.html](../brainstorms/mockups/index.html)
 - Project rules: [CLAUDE.md](../../CLAUDE.md)
 - External (deferred to implementation): `swar/nba_api` GitHub, Anthropic Claude docs, Next.js PWA recipes

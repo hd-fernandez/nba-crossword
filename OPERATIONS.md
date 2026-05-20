@@ -100,4 +100,4 @@ Before fully trusting the cron, do one manual smoke run:
 - **Pipeline package:** `pipeline/nba_mini/` (entry point: `python -m nba_mini.generate`)
 - **Season context:** `pipeline/nba_mini/season_context.md`
 - **Daily puzzles:** `puzzles/YYYY-MM-DD.json`
-- **Plan / design:** `context-engineering/plans/`, `context-engineering/brainstorms/`
+- **Plan / design:** `compound-engineering/plans/`, `compound-engineering/brainstorms/`

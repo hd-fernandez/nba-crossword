@@ -8,19 +8,19 @@ The compound-engineering plugin skills (`ce-plan`, `ce-brainstorm`, `ce-code-rev
 
 | Skill default | This project |
 | --- | --- |
-| `docs/plans/` | `context-engineering/plans/` |
-| `docs/brainstorms/` | `context-engineering/brainstorms/` |
-| `docs/reviews/` | `context-engineering/reviews/` |
-| `docs/solutions/` | `context-engineering/solutions/` |
+| `docs/plans/` | `compound-engineering/plans/` |
+| `docs/brainstorms/` | `compound-engineering/brainstorms/` |
+| `docs/reviews/` | `compound-engineering/reviews/` |
+| `docs/solutions/` | `compound-engineering/solutions/` |
 
 Do NOT create a `docs/` folder at the repo root.
 
 Project-specific artifact paths (no skill equivalent):
 
-- Reference snapshots: `context-engineering/reference/`
-- Templates: `context-engineering/templates/`
-- Analyses: `context-engineering/analyses/`
-- Todos: `context-engineering/todos/`
+- Reference snapshots: `compound-engineering/reference/`
+- Templates: `compound-engineering/templates/`
+- Analyses: `compound-engineering/analyses/`
+- Todos: `compound-engineering/todos/`
 
 ## How to Work
 

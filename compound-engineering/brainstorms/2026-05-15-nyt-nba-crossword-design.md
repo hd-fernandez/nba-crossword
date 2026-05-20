@@ -215,7 +215,7 @@ Side-project scale. ~$0–10/month target.
 
 ## Visual companion
 
-Live mockups at [context-engineering/brainstorms/mockups/index.html](mockups/index.html) — placeholder grid + share card + streak strip. Will iterate alongside the implementation plan.
+Live mockups at [compound-engineering/brainstorms/mockups/index.html](mockups/index.html) — placeholder grid + share card + streak strip. Will iterate alongside the implementation plan.
 
 ---
 
