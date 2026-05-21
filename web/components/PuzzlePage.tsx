@@ -184,7 +184,22 @@ export function PuzzlePage({ league }: PuzzlePageProps) {
           </div>
 
           {status.kind === "loading" && (
-            <p style={{ color: "#d9d9d6" }}>Loading today&rsquo;s puzzle&hellip;</p>
+            <div
+              data-testid="loading"
+              style={{
+                background: "rgba(255, 253, 246, 0.06)",
+                border: "1px solid rgba(255, 253, 246, 0.10)",
+                borderRadius: 14,
+                padding: "32px 20px",
+                textAlign: "center",
+                color: "rgba(247, 247, 245, 0.55)",
+                fontSize: 13,
+                letterSpacing: "0.04em",
+                fontStyle: "italic",
+              }}
+            >
+              Loading today&rsquo;s puzzle&hellip;
+            </div>
           )}
 
           {status.kind === "no-puzzle" && (
@@ -560,14 +575,24 @@ function SplashOverlay({
           style={{
             fontFamily:
               'var(--font-serif, "Fraunces"), "Iowan Old Style", "Charter", "Georgia", serif',
-            fontSize: 28,
+            fontSize: 30,
             fontWeight: 600,
-            margin: "0 0 18px",
-            letterSpacing: "-0.01em",
+            margin: "0 0 4px",
+            letterSpacing: "-0.015em",
           }}
         >
           {cfg.splashTitlePrefix} #{puzzleNumber}
         </h2>
+        <p
+          style={{
+            margin: "0 0 18px",
+            fontSize: 12,
+            color: "#888",
+            letterSpacing: "0.01em",
+          }}
+        >
+          A daily 5×5 from yesterday&rsquo;s slate.
+        </p>
         <button
           type="button"
           onClick={onStart}
