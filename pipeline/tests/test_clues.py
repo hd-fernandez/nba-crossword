@@ -685,6 +685,7 @@ def test_full_puzzle_round_trips_with_generated_clues() -> None:
 
     puzzle = Puzzle(
         date="2026-05-17",
+        puzzle_number=1,
         grid=grid,
         entries=clued_entries,
         season_context_version="abcdef12",

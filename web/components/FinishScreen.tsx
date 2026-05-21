@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import type { Puzzle } from "@/lib/puzzle";
 import { formatElapsed } from "@/lib/share";
@@ -24,6 +24,12 @@ interface FinishScreenProps {
    * `completedDates`).
    */
   streak?: number;
+  /**
+   * Called when the user dismisses the modal (X button, Escape key, or
+   * backdrop click). When omitted, the modal has no exit and stays up.
+   * Tests can omit it to keep the assertion surface stable.
+   */
+  onClose?: () => void;
 }
 
 /**
@@ -40,6 +46,7 @@ export function FinishScreen({
   elapsedMs,
   revealed,
   streak,
+  onClose,
 }: FinishScreenProps) {
   // If the caller supplied an explicit streak, treat the component as a
   // pure render and don't touch localStorage at all. Otherwise: record the
@@ -53,12 +60,27 @@ export function FinishScreen({
   });
   const displayStreak = streak !== undefined ? streak : computedStreak;
 
+  // Escape key dismisses the modal. Listener is no-op if no onClose given.
+  useEffect(() => {
+    if (!onClose) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose?.();
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
   return (
     <div
       role="dialog"
       aria-modal="true"
       aria-labelledby="finish-title"
       data-testid="finish-screen"
+      onClick={(e) => {
+        // Backdrop click closes; clicks inside the card don't bubble here
+        // because we stop propagation on the inner div below.
+        if (onClose && e.target === e.currentTarget) onClose();
+      }}
       style={{
         position: "fixed",
         inset: 0,
@@ -71,7 +93,9 @@ export function FinishScreen({
       }}
     >
       <div
+        onClick={(e) => e.stopPropagation()}
         style={{
+          position: "relative",
           background: "#fffdf6",
           borderRadius: 12,
           maxWidth: 360,
@@ -82,6 +106,28 @@ export function FinishScreen({
           fontFamily: "inherit",
         }}
       >
+        {onClose && (
+          <button
+            type="button"
+            aria-label="Close"
+            data-testid="finish-close"
+            onClick={onClose}
+            style={{
+              position: "absolute",
+              top: 8,
+              right: 8,
+              border: "none",
+              background: "transparent",
+              fontSize: 22,
+              lineHeight: 1,
+              padding: "4px 8px",
+              cursor: "pointer",
+              color: "#888",
+            }}
+          >
+            ×
+          </button>
+        )}
         <div
           aria-hidden
           data-testid="finish-confetti"

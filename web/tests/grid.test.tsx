@@ -173,16 +173,24 @@ describe("solveReducer (example puzzle)", () => {
     expect(e?.id).toBe(sorted[sorted.length - 1].id);
   });
 
-  it("typing past the end of a run leaves the cursor on the last cell", () => {
-    const { dispatch, get } = setup();
-    // 1A is "SPAR" (length 4). Type S P A R — cursor should end up still at
-    // (0,3) since (0,4) is a block.
+  it("filling the last cell of an entry auto-advances to the next entry", () => {
+    const { puzzle, dispatch, get } = setup();
+    // 1A is "SPAR" (length 4). Type S P A R — last keystroke fills the
+    // entry, so the cursor should jump to the start of the next entry
+    // (NYT-mini behavior). The example puzzle's nav order has 1D next
+    // after 1A, both starting at (0,0) — but 1D's first cell already has
+    // "S" from typing 1A, so we land on its first *empty* cell at (1,0).
     dispatch({ type: "enterLetter", letter: "S" });
     dispatch({ type: "enterLetter", letter: "P" });
     dispatch({ type: "enterLetter", letter: "A" });
     dispatch({ type: "enterLetter", letter: "R" });
-    expect(get().selectedCell).toEqual({ row: 0, col: 3 });
     expect(get().letters[0]).toEqual(["S", "P", "A", "R", null]);
+    // After auto-advance: cursor is in a different entry (not still on 1A).
+    const finalCell = get().selectedCell!;
+    expect(finalCell).not.toEqual({ row: 0, col: 3 });
+    // It should land on a letter cell, not a block.
+    const cell = puzzle.grid.cells[finalCell.row][finalCell.col];
+    expect("answer" in cell).toBe(true);
   });
 });
 

@@ -186,6 +186,7 @@ def run_pipeline(
     target_date: date_cls,
     *,
     deps: Deps,
+    puzzle_number: int = 1,
 ) -> Puzzle | None:
     """Run the full pipeline for ``target_date``. Returns the ``Puzzle`` or None.
 
@@ -258,6 +259,7 @@ def run_pipeline(
     # 8. Build + validate the puzzle. Pydantic enforces all invariants.
     puzzle = Puzzle(
         date=iso,
+        puzzle_number=puzzle_number,
         grid=grid,
         entries=entries,
         season_context_version=season.version,
@@ -509,6 +511,43 @@ def puzzle_path_for(date_str: str, out_dir: Path) -> Path:
     return out_dir / f"{date_str}.json"
 
 
+_DATED_FILENAME_RE = re.compile(r"^\d{4}-\d{2}-\d{2}\.json$")
+
+
+def next_puzzle_number(out_dir: Path, target_iso: str) -> int:
+    """Compute the puzzle number to assign to ``target_iso``.
+
+    The number is the count of existing dated puzzle files at or before the
+    target date, plus 1. This makes the assignment stable across re-runs of
+    the same date (an existing file counts as "itself", not as "another"),
+    and stable across backfills of older dates (a backfill of yesterday gets
+    the right number even if today's puzzle is already on disk).
+
+    The "example.json" fixture is intentionally excluded because it isn't a
+    real published puzzle.
+    """
+    if not out_dir.exists():
+        return 1
+    earlier_or_equal = 0
+    target_already_present = False
+    for p in out_dir.iterdir():
+        if not _DATED_FILENAME_RE.match(p.name):
+            continue
+        date_part = p.stem
+        if date_part == target_iso:
+            target_already_present = True
+            continue
+        if date_part < target_iso:
+            earlier_or_equal += 1
+    # Index from 1: first ever puzzle is #1.
+    base = earlier_or_equal + 1
+    # If the target file already exists (regenerate / --force path), assigning
+    # `base` keeps the number stable. If it doesn't yet exist, `base` is also
+    # correct (we're appending after `earlier_or_equal` existing puzzles).
+    _ = target_already_present  # kept for readability; logic identical either way
+    return base
+
+
 def write_puzzle_json(puzzle: Puzzle, path: Path) -> None:
     """Serialize a ``Puzzle`` to ``path`` as pretty-printed UTF-8 JSON.
 
@@ -611,8 +650,9 @@ def main(argv: Sequence[str] | None = None, *, deps: Deps | None = None) -> int:
     if deps is None:
         deps = Deps.production(model=args.model)
 
+    puzzle_num = next_puzzle_number(out_dir, iso)
     try:
-        puzzle = run_pipeline(target_date, deps=deps)
+        puzzle = run_pipeline(target_date, deps=deps, puzzle_number=puzzle_num)
     except RedditIngestError as exc:
         logger.error("reddit ingest failed for %s: %s", iso, exc)
         return 1

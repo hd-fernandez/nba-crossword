@@ -51,6 +51,8 @@ export type Entry = z.infer<typeof EntrySchema>;
 const RawPuzzleSchema = z
   .object({
     date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    // Sequential count since launch. Frontend renders as "NBA Mini #N".
+    puzzle_number: z.number().int().min(1),
     grid: GridSchema,
     entries: z.array(EntrySchema),
     season_context_version: z.string(),

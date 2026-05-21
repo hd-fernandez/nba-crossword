@@ -59,6 +59,10 @@ class Entry(BaseModel):
 class Puzzle(BaseModel):
     model_config = ConfigDict(extra="forbid")
     date: str = Field(pattern=r"^\d{4}-\d{2}-\d{2}$")
+    # Sequential count since launch (1-indexed). Frontend renders this as
+    # "NBA Mini #N" on the splash screen. Pipeline computes it as the count
+    # of existing real puzzle files + 1.
+    puzzle_number: int = Field(ge=1)
     grid: Grid
     entries: list[Entry]
     season_context_version: str

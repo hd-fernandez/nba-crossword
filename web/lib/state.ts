@@ -352,6 +352,64 @@ export function sortedEntriesForNav(puzzle: Puzzle): Entry[] {
   });
 }
 
+/** Iterate the (row, col) cells covered by an entry. */
+function* entryCells(entry: Entry): Generator<{ row: number; col: number }> {
+  for (let i = 0; i < entry.answer.length; i++) {
+    yield {
+      row: entry.row + (entry.direction === "down" ? i : 0),
+      col: entry.col + (entry.direction === "across" ? i : 0),
+    };
+  }
+}
+
+/** True when every cell of the entry has a letter (correct or not). */
+export function entryCellsAllFilled(
+  entry: Entry,
+  letters: (string | null)[][],
+): boolean {
+  for (const { row, col } of entryCells(entry)) {
+    if (!letters[row][col]) return false;
+  }
+  return true;
+}
+
+/** First empty cell inside the entry, or null if it's already full. */
+export function firstEmptyCellInEntry(
+  entry: Entry,
+  letters: (string | null)[][],
+): { row: number; col: number } | null {
+  for (const cell of entryCells(entry)) {
+    if (!letters[cell.row][cell.col]) return cell;
+  }
+  return null;
+}
+
+/**
+ * Next entry after `current` in nav order. Prefers entries in the *same*
+ * direction first (NYT-mini behavior: finishing an across entry takes you
+ * to the next across, not to a down), then wraps to perpendicular entries
+ * only after all same-direction entries are exhausted. Returns null if
+ * there's only one entry.
+ */
+export function nextEntryAfter(puzzle: Puzzle, current: Entry): Entry | null {
+  const entries = sortedEntriesForNav(puzzle);
+  if (entries.length <= 1) return null;
+
+  const sameDir = entries.filter((e) => e.direction === current.direction);
+  const idxSameDir = sameDir.findIndex(
+    (e) => e.row === current.row && e.col === current.col,
+  );
+
+  // If there's another entry in the same direction, use it.
+  if (idxSameDir !== -1 && idxSameDir < sameDir.length - 1) {
+    return sameDir[idxSameDir + 1];
+  }
+
+  // Otherwise, hand off to the first entry in the perpendicular direction.
+  const otherDir = entries.find((e) => e.direction !== current.direction);
+  return otherDir ?? null;
+}
+
 // ---------------------------------------------------------------------------
 // Reducer
 // ---------------------------------------------------------------------------
@@ -442,10 +500,31 @@ export function solveReducer(
           state.startedAt === null && state.finishedAt === null
             ? now
             : state.startedAt;
+
+        // NYT-mini auto-advance: when this keystroke fills the last empty cell
+        // of the current entry, jump to the start of the next entry. We jump
+        // on "filled" not "correct" so a typo'd entry still moves you forward
+        // — the user can come back and fix it later.
+        let selectedCell = next ?? state.selectedCell;
+        let direction = state.direction;
+        const activeEntry = findActiveEntry(puzzle, row, col, state.direction);
+        if (activeEntry) {
+          const entryFilled = entryCellsAllFilled(activeEntry, newLetters);
+          if (entryFilled) {
+            const nextEntry = nextEntryAfter(puzzle, activeEntry);
+            if (nextEntry) {
+              const firstEmpty = firstEmptyCellInEntry(nextEntry, newLetters);
+              selectedCell = firstEmpty ?? { row: nextEntry.row, col: nextEntry.col };
+              direction = nextEntry.direction;
+            }
+          }
+        }
+
         const advanced: SolveState = {
           ...state,
           letters: newLetters,
-          selectedCell: next ?? state.selectedCell,
+          selectedCell,
+          direction,
           startedAt,
         };
         return withFinishCheck(puzzle, advanced, now);

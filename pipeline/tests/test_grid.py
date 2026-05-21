@@ -284,6 +284,7 @@ def test_filled_grid_round_trips_through_puzzle_schema(real_wordlist: list[str])
 
     puzzle = Puzzle(
         date="2026-05-17",
+        puzzle_number=1,
         grid=grid,
         entries=entries,
         season_context_version="test0001",

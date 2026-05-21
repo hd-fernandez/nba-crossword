@@ -414,6 +414,7 @@ def test_entries_from_grid_numbers_match_example_puzzle_convention() -> None:
     # check: it requires start-of-run, crossings, full coverage.
     puzzle = Puzzle(
         date="2026-05-17",
+        puzzle_number=1,
         grid=grid,
         entries=entries,
         season_context_version="abc12345",

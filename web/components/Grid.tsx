@@ -1,7 +1,7 @@
 "use client";
 
-import type { FormEvent, KeyboardEvent } from "react";
-import { useMemo, useRef } from "react";
+import type { FormEvent, KeyboardEvent, Ref } from "react";
+import { forwardRef, useImperativeHandle, useMemo, useRef } from "react";
 import type { Puzzle } from "@/lib/puzzle";
 import {
   type SolveAction,
@@ -15,6 +15,14 @@ interface GridProps {
   puzzle: Puzzle;
   state: SolveState;
   dispatch: (action: SolveAction) => void;
+}
+
+/** Imperative handle exposed to parents that want to focus the grid
+ *  programmatically — e.g., the splash overlay's Start button needs to
+ *  shift keyboard focus into the puzzle so the user can start typing
+ *  immediately. */
+export interface GridHandle {
+  focus(): void;
 }
 
 const CELL_SIZE = 56; // px
@@ -31,7 +39,10 @@ const CELL_SIZE = 56; // px
  * State is owned by the parent (the page component) so the ClueBar can
  * subscribe to the same reducer state — see app/page.tsx.
  */
-export function Grid({ puzzle, state, dispatch }: GridProps) {
+function GridImpl(
+  { puzzle, state, dispatch }: GridProps,
+  ref: Ref<GridHandle>,
+) {
   const numbers = useMemo(() => entryNumberMap(puzzle.grid), [puzzle]);
 
   // Cells that belong to the active entry (for highlight styling)
@@ -67,6 +78,8 @@ export function Grid({ puzzle, state, dispatch }: GridProps) {
     if (isTouch) trapRef.current?.focus();
     else wrapperRef.current?.focus();
   }
+
+  useImperativeHandle(ref, () => ({ focus: focusGrid }), []);
 
   function handleKeyDown(e: KeyboardEvent) {
     // Don't interfere with browser shortcuts (Cmd+R, Ctrl+L, etc.).
@@ -277,3 +290,6 @@ export function Grid({ puzzle, state, dispatch }: GridProps) {
     </div>
   );
 }
+
+export const Grid = forwardRef<GridHandle, GridProps>(GridImpl);
+Grid.displayName = "Grid";

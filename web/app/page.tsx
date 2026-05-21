@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useReducer, useState } from "react";
+import { useEffect, useMemo, useReducer, useRef, useState } from "react";
 
 import { ClueBar } from "@/components/ClueBar";
 import { FinishScreen } from "@/components/FinishScreen";
-import { Grid } from "@/components/Grid";
+import { Grid, type GridHandle } from "@/components/Grid";
 import { StreakBadge } from "@/components/StreakBadge";
 import { Timer } from "@/components/Timer";
 import { fetchTodayPuzzle, todayInEastern, type Puzzle } from "@/lib/puzzle";
@@ -70,75 +70,141 @@ export default function HomePage() {
   }, [today]);
 
   return (
-    <main
-      style={{
-        padding: 24,
-        fontFamily:
-          'ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
-        maxWidth: 720,
-        margin: "0 auto",
-      }}
-    >
-      <header
+    <>
+      {/* Fixed photographic backdrop. The image is a CC0 basketball shot
+          at web/public/bg/court.jpg; the dark gradient overlay ensures the
+          puzzle card and text stay legible. `position: fixed` so the
+          image doesn't repeat when the page is taller than the viewport. */}
+      <div
+        aria-hidden
         style={{
-          marginBottom: 24,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 12,
+          position: "fixed",
+          inset: 0,
+          backgroundImage: "url(/bg/court.jpg)",
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          zIndex: -2,
+        }}
+      />
+      <div
+        aria-hidden
+        style={{
+          position: "fixed",
+          inset: 0,
+          background:
+            "linear-gradient(180deg, rgba(10,10,12,0.78) 0%, rgba(10,10,12,0.86) 60%, rgba(10,10,12,0.92) 100%)",
+          zIndex: -1,
+        }}
+      />
+      <main
+        style={{
+          minHeight: "100vh",
+          padding: "32px 16px 48px",
+          fontFamily:
+            'ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
+          color: "#f7f7f5",
         }}
       >
-        <h1
-          style={{
-            fontFamily: '"Iowan Old Style", "Charter", "Georgia", serif',
-            fontSize: 28,
-            margin: 0,
-          }}
-        >
-          The NBA Mini
-        </h1>
-        <StreakBadge streak={streak} />
-      </header>
+        <div style={{ maxWidth: 520, margin: "0 auto" }}>
+          <header
+            style={{
+              marginBottom: 24,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 12,
+            }}
+          >
+            <h1
+              style={{
+                fontFamily: '"Iowan Old Style", "Charter", "Georgia", serif',
+                fontSize: 32,
+                margin: 0,
+                letterSpacing: "-0.01em",
+                color: "#fffdf6",
+                textShadow: "0 1px 2px rgba(0,0,0,0.5)",
+              }}
+            >
+              The NBA Mini
+            </h1>
+            <StreakBadge streak={streak} />
+          </header>
 
-      {status.kind === "loading" && <p>Loading today&rsquo;s puzzle&hellip;</p>}
+          {status.kind === "loading" && (
+            <p style={{ color: "#d9d9d6" }}>Loading today&rsquo;s puzzle&hellip;</p>
+          )}
 
-      {status.kind === "no-puzzle" && (
-        <div
-          role="status"
-          data-testid="no-puzzle"
-          style={{
-            padding: 24,
-            background: "#f1efe8",
-            borderRadius: 8,
-            color: "#333",
-          }}
-        >
-          <h2 style={{ marginTop: 0 }}>No puzzle today</h2>
-          <p style={{ margin: 0 }}>
-            There were no NBA games yesterday. Streaks pause on off-days &mdash;
-            see you tomorrow.
-          </p>
+          {status.kind === "no-puzzle" && (
+            <div
+              role="status"
+              data-testid="no-puzzle"
+              style={{
+                padding: 24,
+                background: "rgba(255, 253, 246, 0.96)",
+                borderRadius: 12,
+                color: "#1a1a1a",
+                boxShadow: "0 12px 40px rgba(0,0,0,0.35)",
+              }}
+            >
+              <h2 style={{ marginTop: 0 }}>No puzzle today</h2>
+              <p style={{ margin: 0 }}>
+                There were no NBA games yesterday. Streaks pause on off-days
+                &mdash; see you tomorrow.
+              </p>
+            </div>
+          )}
+
+          {status.kind === "error" && (
+            <div
+              role="alert"
+              style={{
+                color: "#fff",
+                background: "rgba(160, 0, 0, 0.85)",
+                padding: 16,
+                borderRadius: 8,
+              }}
+            >
+              Couldn&rsquo;t load today&rsquo;s puzzle: {status.message}
+            </div>
+          )}
+
+          {status.kind === "ready" && (
+            <div
+              style={{
+                background: "rgba(255, 253, 246, 0.97)",
+                borderRadius: 14,
+                padding: 20,
+                boxShadow: "0 16px 50px rgba(0,0,0,0.4)",
+                color: "#1a1a1a",
+              }}
+            >
+              <PuzzleView
+                puzzle={status.puzzle}
+                onCompletion={() => {
+                  // `today` will always be set here — `status` only flips to
+                  // "ready" inside the fetch effect, which only runs after
+                  // `today` is set. But guard anyway so a future refactor
+                  // can't NPE.
+                  if (today) setStreak(getStreak(today));
+                }}
+              />
+            </div>
+          )}
+
+          <footer
+            style={{
+              marginTop: 24,
+              fontSize: 11,
+              color: "rgba(247, 247, 245, 0.55)",
+              textAlign: "center",
+              letterSpacing: "0.05em",
+            }}
+          >
+            Photo: Unsplash · CC0
+          </footer>
         </div>
-      )}
-
-      {status.kind === "error" && (
-        <div role="alert" style={{ color: "#a00" }}>
-          Couldn&rsquo;t load today&rsquo;s puzzle: {status.message}
-        </div>
-      )}
-
-      {status.kind === "ready" && (
-        <PuzzleView
-          puzzle={status.puzzle}
-          onCompletion={() => {
-            // `today` will always be set here — `status` only flips to
-            // "ready" inside the fetch effect, which only runs after `today`
-            // is set. But guard anyway so a future refactor can't NPE.
-            if (today) setStreak(getStreak(today));
-          }}
-        />
-      )}
-    </main>
+      </main>
+    </>
   );
 }
 
@@ -157,6 +223,8 @@ function PuzzleView({
 }) {
   const reducer = useMemo(() => solveReducer(puzzle), [puzzle]);
   const [state, dispatch] = useReducer(reducer, puzzle, initialState);
+  const [started, setStarted] = useState(false);
+  const gridRef = useRef<GridHandle>(null);
 
   const activeEntry = useMemo(() => {
     if (!state.selectedCell) return null;
@@ -172,8 +240,10 @@ function PuzzleView({
   // setInterval in background tabs anyway, but anchoring the elapsed time
   // to wall-clock means a long backgrounded tab would otherwise charge the
   // user for time they spent elsewhere. Pause keeps "your solve time" honest.
+  // Only attached after the user clicks Start so we don't pause-with-zero a
+  // splash that hasn't been started yet.
   useEffect(() => {
-    if (typeof document === "undefined") return;
+    if (!started || typeof document === "undefined") return;
     function onVisibility() {
       if (document.hidden) {
         dispatch({ type: "pauseTimer", now: Date.now() });
@@ -183,9 +253,21 @@ function PuzzleView({
     }
     document.addEventListener("visibilitychange", onVisibility);
     return () => document.removeEventListener("visibilitychange", onVisibility);
-  }, []);
+  }, [started]);
+
+  function handleStart() {
+    if (started) return;
+    setStarted(true);
+    dispatch({ type: "startTimer", now: Date.now() });
+    // Focus on the next tick so the Grid is unblurred + interactive when
+    // we hand it focus. requestAnimationFrame is a safer "after layout" hook
+    // than setTimeout(0) on most browsers.
+    requestAnimationFrame(() => gridRef.current?.focus());
+  }
 
   const isFinished = state.finishedAt !== null;
+  // The modal can be dismissed; finish state itself is permanent.
+  const [finishDismissed, setFinishDismissed] = useState(false);
   // Snapshot the elapsed at finish so the FinishScreen doesn't tick.
   const finalElapsed = useMemo(
     () => (isFinished ? elapsedMs(state, Date.now()) : 0),
@@ -203,33 +285,75 @@ function PuzzleView({
   }, [isFinished, state.finishedAt]);
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 16, position: "relative" }}>
       <div
+        // Blur the play surface until the user clicks Start. Pointer-events
+        // off so a stray click on the blurred clues doesn't focus the grid
+        // before the splash is dismissed.
         style={{
           display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 12,
+          flexDirection: "column",
+          gap: 16,
+          filter: started ? "none" : "blur(6px)",
+          transition: "filter 200ms ease-out",
+          pointerEvents: started ? "auto" : "none",
+          userSelect: started ? "auto" : "none",
         }}
+        aria-hidden={!started}
       >
-        <Timer state={state} />
-        <RevealMenu
-          onRevealLetter={() => dispatch({ type: "revealLetter" })}
-          onRevealWord={() => dispatch({ type: "revealWord" })}
-          onRevealPuzzle={() => dispatch({ type: "revealPuzzle" })}
-        />
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 12,
+          }}
+        >
+          <Timer state={state} />
+          <RevealMenu
+            onRevealLetter={() => dispatch({ type: "revealLetter" })}
+            onRevealWord={() => dispatch({ type: "revealWord" })}
+            onRevealPuzzle={() => dispatch({ type: "revealPuzzle" })}
+          />
+        </div>
+        <Grid ref={gridRef} puzzle={puzzle} state={state} dispatch={dispatch} />
+        <ClueBar puzzle={puzzle} activeEntry={activeEntry} />
       </div>
-      <Grid puzzle={puzzle} state={state} dispatch={dispatch} />
-      <ClueBar puzzle={puzzle} activeEntry={activeEntry} />
 
-      {isFinished && (
+      {!started && (
+        <SplashOverlay
+          puzzleNumber={puzzle.puzzle_number}
+          puzzleDate={puzzle.date}
+          onStart={handleStart}
+        />
+      )}
+
+      {started && isFinished && !finishDismissed && (
         // No `streak` prop — FinishScreen calls `recordCompletion(puzzle.date)`
         // and computes the streak from localStorage on mount.
         <FinishScreen
           puzzle={puzzle}
           elapsedMs={finalElapsed}
           revealed={state.revealed}
+          onClose={() => setFinishDismissed(true)}
         />
+      )}
+      {isFinished && finishDismissed && (
+        <button
+          type="button"
+          onClick={() => setFinishDismissed(false)}
+          style={{
+            alignSelf: "flex-start",
+            padding: "8px 14px",
+            border: "1px solid #d9d9d6",
+            borderRadius: 6,
+            background: "#fff",
+            cursor: "pointer",
+            fontSize: 13,
+          }}
+        >
+          Show finish summary
+        </button>
       )}
     </div>
   );
@@ -291,3 +415,99 @@ const revealButtonStyle: React.CSSProperties = {
   color: "#333",
   cursor: "pointer",
 };
+
+// ---------------------------------------------------------------------------
+// Splash overlay shown before the user clicks Start
+// ---------------------------------------------------------------------------
+
+function SplashOverlay({
+  puzzleNumber,
+  puzzleDate,
+  onStart,
+}: {
+  puzzleNumber: number;
+  puzzleDate: string;
+  onStart: () => void;
+}) {
+  // Pretty date: "May 21" from "2026-05-21". Locale-aware formatting via
+  // Intl, parsing the ISO date as a UTC date so the displayed month/day
+  // doesn't shift across timezones.
+  const pretty = useMemo(() => {
+    const [y, m, d] = puzzleDate.split("-").map(Number);
+    const dt = new Date(Date.UTC(y, m - 1, d));
+    return new Intl.DateTimeFormat("en-US", {
+      month: "long",
+      day: "numeric",
+      timeZone: "UTC",
+    }).format(dt);
+  }, [puzzleDate]);
+
+  return (
+    <div
+      data-testid="splash-overlay"
+      style={{
+        position: "absolute",
+        inset: 0,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        // Subtle scrim so the blurred play surface reads as background.
+        background:
+          "radial-gradient(ellipse at center, rgba(255,253,246,0.4) 0%, rgba(255,253,246,0) 70%)",
+        zIndex: 10,
+      }}
+    >
+      <div
+        style={{
+          textAlign: "center",
+          padding: "24px 28px",
+          background: "rgba(255, 253, 246, 0.98)",
+          borderRadius: 14,
+          boxShadow: "0 12px 40px rgba(0,0,0,0.25)",
+          maxWidth: 320,
+        }}
+      >
+        <div
+          style={{
+            fontSize: 11,
+            letterSpacing: "0.12em",
+            textTransform: "uppercase",
+            color: "#888",
+            marginBottom: 4,
+          }}
+        >
+          {pretty}
+        </div>
+        <h2
+          style={{
+            fontFamily: '"Iowan Old Style", "Charter", "Georgia", serif',
+            fontSize: 26,
+            margin: "0 0 16px",
+            letterSpacing: "-0.01em",
+          }}
+        >
+          NBA Mini #{puzzleNumber}
+        </h2>
+        <button
+          type="button"
+          onClick={onStart}
+          autoFocus
+          style={{
+            background: "#c8102e",
+            color: "#fff",
+            border: "none",
+            borderRadius: 8,
+            padding: "12px 32px",
+            fontSize: 16,
+            fontWeight: 600,
+            cursor: "pointer",
+            letterSpacing: "0.02em",
+            boxShadow: "0 4px 12px rgba(200, 16, 46, 0.35)",
+          }}
+        >
+          Start
+        </button>
+      </div>
+    </div>
+  );
+}

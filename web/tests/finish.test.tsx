@@ -385,6 +385,10 @@ describe("<HomePage> end-to-end finish", () => {
     render(<HomePage />);
     await screen.findByTestId("grid-wrapper");
 
+    // The splash blocks input until the user clicks Start. Click it so
+    // the play surface is interactive (matches real solver behavior).
+    fireEvent.click(screen.getByRole("button", { name: /start/i }));
+
     // Reveal the whole puzzle — that immediately finishes.
     fireEvent.click(screen.getByTestId("reveal-puzzle"));
 
