@@ -261,7 +261,7 @@ If v2 is too far out, we can do a **"locked WNBA placeholder"** in v1 — the sc
 
 ## Open questions parked for the implementation plan
 
-- **Domain.** Is `nbamini.app` the brand, or do we go with something league-neutral like `dailyhoops.app`? "NBA Mini" as a name reads as NBA-only; "Daily Hoops Mini" or "The Hoops Mini" works for both. **Punt to plan time** — naming should not block design.
+- ~~**Domain.** Is `nbamini.app` the brand, or do we go with something league-neutral like `dailyhoops.app`?~~ **Decided 2026-05-21:** `nbamini.app` stays. Slight "but it says NBA in the URL" weirdness on WNBA pages, but acceptable trade-off; brand recognition > naming purity at this scale.
 - **Wordlist split or shared.** Empirical question — try shared first, see what falls out, build an overlay only if needed.
 - **Reddit auth.** WNBA subreddits have lower volume; rate limits aren't an issue, but the same OAuth question applies as for NBA. Almost certainly fine on the public JSON endpoints.
 - **wnba.com vs nba_api package.** `nba_api` claims WNBA support — confirm at plan time it's actually maintained.

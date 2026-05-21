@@ -4,7 +4,7 @@ import { resolve } from "node:path";
 
 import { parsePuzzle, PuzzleSchema } from "@/lib/puzzle";
 
-const EXAMPLE_PATH = resolve(__dirname, "../../puzzles/example.json");
+const EXAMPLE_PATH = resolve(__dirname, "../../puzzles/nba/example.json");
 
 function loadExample(): Record<string, unknown> {
   return JSON.parse(readFileSync(EXAMPLE_PATH, "utf-8"));

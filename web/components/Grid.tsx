@@ -25,7 +25,7 @@ export interface GridHandle {
   focus(): void;
 }
 
-const CELL_SIZE = 56; // px
+const CELL_SIZE = 60; // px
 
 /**
  * The 5x5 puzzle grid with keyboard + touch input.
@@ -154,10 +154,12 @@ function GridImpl(
         style={{
           display: "grid",
           gridTemplateColumns: `repeat(${puzzle.grid.size}, ${CELL_SIZE}px)`,
-          gap: 2,
-          background: "#121212",
-          border: "2px solid #121212",
-          borderRadius: 4,
+          gap: 1,
+          background: "#1a1a1a",
+          border: "2px solid #1a1a1a",
+          borderRadius: 6,
+          overflow: "hidden",
+          boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
         }}
       >
         {puzzle.grid.cells.map((row, r) =>
@@ -189,14 +191,14 @@ function GridImpl(
             // user's current focus still reads first. A subtle warm tint
             // plus a small corner dot is enough to differentiate.
             const bg = isSelected
-              ? "#fff7a8" // active cell yellow
+              ? "#ffe066" // active cell — warmer goldenrod
               : isInActiveRun
                 ? isRevealed
-                  ? "#dde6ec" // run + revealed: cool gray-blue
-                  : "#cfe6ff" // run only: highlighted blue
+                  ? "#e0e8ee" // run + revealed: cool gray
+                  : "#cfe6ff" // run only: soft blue
                 : isRevealed
                   ? "#fff5d6" // revealed at rest: warm cream
-                  : "#ffffff";
+                  : "#fefdf9"; // empty: very warm white
             return (
               <div
                 key={key}
@@ -220,11 +222,13 @@ function GridImpl(
                   alignItems: "center",
                   justifyContent: "center",
                   fontFamily:
-                    '"Iowan Old Style", "Charter", "Georgia", serif',
-                  fontWeight: 700,
-                  fontSize: 22,
+                    'var(--font-serif), "Iowan Old Style", "Charter", "Georgia", serif',
+                  fontWeight: 600,
+                  fontSize: 24,
+                  color: "#1a1a1a",
                   cursor: "pointer",
                   userSelect: "none",
+                  transition: "background 100ms ease",
                 }}
               >
                 {number !== undefined && (
@@ -232,12 +236,13 @@ function GridImpl(
                     aria-hidden
                     style={{
                       position: "absolute",
-                      top: 2,
-                      left: 4,
-                      fontFamily: "system-ui, sans-serif",
+                      top: 3,
+                      left: 5,
+                      fontFamily: "var(--font-sans), system-ui, sans-serif",
                       fontSize: 10,
                       fontWeight: 600,
-                      color: "#444",
+                      color: "#666",
+                      letterSpacing: "0.02em",
                     }}
                   >
                     {number}

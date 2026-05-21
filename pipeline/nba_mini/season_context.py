@@ -11,9 +11,27 @@ from __future__ import annotations
 import hashlib
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Literal
+
+League = Literal["nba", "wnba"]
 
 DEFAULT_PATH = Path(__file__).resolve().parent / "season_context.md"
+NBA_PATH = Path(__file__).resolve().parent / "season_context_nba.md"
+WNBA_PATH = Path(__file__).resolve().parent / "season_context_wnba.md"
 VERSION_HASH_LENGTH = 8
+
+
+def path_for_league(league: League) -> Path:
+    """Resolve the season-context markdown file path for a league.
+
+    Falls back to the legacy `season_context.md` if the league-specific
+    file isn't present yet — this keeps v0 behavior intact while v2's
+    league-specific files roll in.
+    """
+    league_path = NBA_PATH if league == "nba" else WNBA_PATH
+    if league_path.exists():
+        return league_path
+    return DEFAULT_PATH
 
 
 class SeasonContextNotFoundError(FileNotFoundError):
@@ -33,22 +51,33 @@ class SeasonContext:
     version: str
 
 
-def load_season_context(path: Path | None = None) -> SeasonContext:
+def load_season_context(
+    path: Path | None = None,
+    *,
+    league: League | None = None,
+) -> SeasonContext:
     """Load the season context markdown and compute its version hash.
 
     Args:
-        path: Optional override for the markdown path. Defaults to the
-            packaged `season_context.md` next to this module.
+        path: Optional override for the markdown path. Takes precedence over
+            ``league`` when both are given.
+        league: When set, resolve the path via ``path_for_league(league)``.
+            Defaults to the legacy single-file ``season_context.md``.
 
     Returns:
-        A `SeasonContext` carrying the file's text and an 8-char sha256 prefix
-        of its bytes. Stable for unchanged content; changes when the file
-        changes.
+        A ``SeasonContext`` carrying the file's text and an 8-char sha256
+        prefix of its bytes. Stable for unchanged content; changes when the
+        file changes.
 
     Raises:
         SeasonContextNotFoundError: if the file does not exist.
     """
-    target = path if path is not None else DEFAULT_PATH
+    if path is not None:
+        target = path
+    elif league is not None:
+        target = path_for_league(league)
+    else:
+        target = DEFAULT_PATH
     try:
         raw_bytes = target.read_bytes()
     except FileNotFoundError as exc:

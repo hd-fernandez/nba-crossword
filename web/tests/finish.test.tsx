@@ -4,7 +4,7 @@ import { act, cleanup, fireEvent, render, screen } from "@testing-library/react"
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
-import HomePage from "@/app/page";
+import { PuzzlePage } from "@/components/PuzzlePage";
 import { FinishScreen } from "@/components/FinishScreen";
 import { Grid } from "@/components/Grid";
 import { Timer } from "@/components/Timer";
@@ -19,7 +19,7 @@ import {
 } from "@/lib/state";
 import { parsePuzzle, type Puzzle } from "@/lib/puzzle";
 
-const EXAMPLE_PATH = resolve(__dirname, "../../puzzles/example.json");
+const EXAMPLE_PATH = resolve(__dirname, "../../puzzles/nba/example.json");
 
 function loadExamplePuzzle(): Puzzle {
   const raw = JSON.parse(readFileSync(EXAMPLE_PATH, "utf-8"));
@@ -382,7 +382,7 @@ describe("<HomePage> end-to-end finish", () => {
       clipboard: { writeText },
     });
 
-    render(<HomePage />);
+    render(<PuzzlePage league="nba" />);
     await screen.findByTestId("grid-wrapper");
 
     // The splash blocks input until the user clicks Start. Click it so
@@ -423,7 +423,7 @@ describe("<HomePage> visibility change pauses/resumes the timer", () => {
     }));
     vi.stubGlobal("fetch", fetchMock);
 
-    render(<HomePage />);
+    render(<PuzzlePage league="nba" />);
     await screen.findByTestId("grid-wrapper");
 
     // Type a letter to start the timer.

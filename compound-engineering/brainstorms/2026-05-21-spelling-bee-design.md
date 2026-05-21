@@ -56,16 +56,30 @@ This is the load-bearing decision. The corpus determines what's accepted, and th
 ### What counts as a name
 
 - **Player last names** (current rosters + all-time, per league)
+- **Mononym-grade first names** — LeBron, Giannis, Kobe, Magic, Shaq, Kareem, Wemby, A'ja, Caitlin, Sue, Sabrina, Diana. Test: would a fan recognize this in *SportsCenter* shorthand? If yes, it's in.
+- **Distinctive nicknames** that have crossed into mainstream coverage — Greek Freak, King James, Black Mamba. *Not* fan-invented Twitter shorthand.
 - **Coach last names** (current head + assistants worth knowing)
 - **Owner / front-office last names** (worth knowing — Cuban, Lacob, Tepper, etc. for NBA; Mark Davis, Joe Tsai for various)
 - **Iconic figures** that any tapped-in fan would recognize even if they don't currently fit a roster slot (Jordan, Kobe, Stockton, Lobo, Swoopes, Bird-Sue, etc.)
 
 Excluded:
 
-- First names (too generic — "Lebron", "Caitlin" feels off as a Bee answer; the mechanic depends on surnames)
-- Nicknames (no "King James", no "Mailman" — too subjective)
+- **Common first names that aren't iconic** (Mike, John, Chris) — too generic; "Mike" could be anyone.
+- **Made-up Twitter nicknames** that haven't crossed into mainstream coverage.
 - Team names (different game)
 - City names (different game)
+
+### Corpus storage shape
+
+Each name in the corpus is stored as `name | type | display`:
+
+| Field | Example | Notes |
+|---|---|---|
+| `name` | `LEBRON` | Uppercase, diacritics-stripped, used for matching |
+| `type` | `first_mononym` | One of: `last`, `first_mononym`, `nickname` |
+| `display` | `LeBron James` | Original casing + punctuation, for the found-names list |
+
+This lets `LEBRON` and `JAMES` both be valid Bee answers on the same board (different `type`, different `display` — same player). The Bee scorecard lists them separately.
 
 ### Source
 
@@ -84,7 +98,7 @@ Excluded:
 ### Quality / contention
 
 - Some names are *also* common English words (Hill, Wood, Brown, Smith, Bird). That's fine — they're valid Bee answers either way; the user just needs to think of them as names. The puzzle's pleasure is the dual-meaning click.
-- Some names are *very* obscure (1980s journeyman bench players). Excluded from active corpus by a "fame floor" — we keep names that played at least N games or won at least one major award. Specifics at plan time.
+- Some names are *very* obscure (1980s journeyman bench players). Excluded from active corpus by a **fame floor** — we keep names that played at least 100 NBA games OR won at least one major award OR are currently on a roster. WNBA gets a less strict floor (3 seasons OR award OR currently active) since the league is younger and total game counts are lower. Currently-active rosters always pass — Wemby is in from day one. Tunable post-launch based on user signal.
 
 ---
 

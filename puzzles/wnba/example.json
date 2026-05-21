@@ -1,0 +1,30 @@
+{
+  "date": "2026-05-15",
+  "league": "wnba",
+  "puzzle_number": 1,
+  "grid": {
+    "size": 5,
+    "cells": [
+      [{"answer": "S"}, {"answer": "P"}, {"answer": "A"}, {"answer": "R"}, {"block": true}],
+      [{"answer": "T"}, {"answer": "A"}, {"answer": "R"}, {"answer": "O"}, {"answer": "T"}],
+      [{"answer": "A"}, {"answer": "R"}, {"answer": "E"}, {"answer": "N"}, {"answer": "A"}],
+      [{"answer": "M"}, {"answer": "I"}, {"answer": "N"}, {"answer": "E"}, {"answer": "D"}],
+      [{"block": true}, {"answer": "P"}, {"answer": "O"}, {"answer": "S"}, {"answer": "E"}]
+    ]
+  },
+  "entries": [
+    {"id": "1A",  "direction": "across", "row": 0, "col": 0, "answer": "SPAR",  "clue": "What rivals do in shootaround at the new Valkyries arena.", "voice": "wry"},
+    {"id": "1D",  "direction": "down",   "row": 0, "col": 0, "answer": "STAM",  "clue": "Test fixture; not a real word.",                            "voice": "factual"},
+    {"id": "2D",  "direction": "down",   "row": 0, "col": 1, "answer": "PARIP", "clue": "Test fixture; not a real word.",                            "voice": "factual"},
+    {"id": "3D",  "direction": "down",   "row": 0, "col": 2, "answer": "ARENO", "clue": "Test fixture; not a real word.",                            "voice": "factual"},
+    {"id": "4D",  "direction": "down",   "row": 0, "col": 3, "answer": "RONES", "clue": "Test fixture; not a real word.",                            "voice": "factual"},
+    {"id": "5A",  "direction": "across", "row": 1, "col": 0, "answer": "TAROT", "clue": "Reading the deck on Caitlin's sophomore season.",          "voice": "wry"},
+    {"id": "6D",  "direction": "down",   "row": 1, "col": 4, "answer": "TADE",  "clue": "Test fixture; not a real word.",                            "voice": "factual"},
+    {"id": "7A",  "direction": "across", "row": 2, "col": 0, "answer": "ARENA", "clue": "Wintrust on a sold-out Sunday in Chicago.",                 "voice": "discoursey"},
+    {"id": "8A",  "direction": "across", "row": 3, "col": 0, "answer": "MINED", "clue": "Where she pulled the assist from on the replay.",           "voice": "wry"},
+    {"id": "9A",  "direction": "across", "row": 4, "col": 1, "answer": "POSE",  "clue": "What A'ja strikes after the and-one.",                      "voice": "discoursey"}
+  ],
+  "season_context_version": "example",
+  "generated_at": "2026-05-15T10:00:00Z",
+  "model": "example-fixture"
+}

@@ -10,7 +10,7 @@ from pydantic import ValidationError
 
 from nba_mini.schema import Puzzle
 
-EXAMPLE_PATH = Path(__file__).resolve().parents[2] / "puzzles" / "example.json"
+EXAMPLE_PATH = Path(__file__).resolve().parents[2] / "puzzles" / "nba" / "example.json"
 
 
 def load_example() -> dict:

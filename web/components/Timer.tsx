@@ -49,22 +49,23 @@ export function Timer({ state }: TimerProps) {
         gap: 8,
         fontFamily: "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace",
         fontSize: 14,
-        color: "#444",
       }}
     >
       <span
         data-testid="timer-value"
         aria-label={hidden ? "Timer hidden" : `Elapsed time ${display}`}
         style={{
-          minWidth: 44,
+          minWidth: 52,
           fontVariantNumeric: "tabular-nums",
           fontWeight: 600,
+          fontSize: 16,
           color: hidden ? "transparent" : "#1a1a1a",
           // Keep the layout stable when hidden — hide via opacity-equivalent.
           background: hidden ? "#e8e6df" : "transparent",
-          borderRadius: 4,
-          padding: "2px 6px",
+          borderRadius: 6,
+          padding: "3px 8px",
           userSelect: "none",
+          letterSpacing: "0.02em",
         }}
       >
         {display}
@@ -75,13 +76,18 @@ export function Timer({ state }: TimerProps) {
         onClick={() => setHidden((h) => !h)}
         aria-pressed={hidden}
         style={{
-          fontSize: 11,
-          color: "#555",
+          fontFamily: "var(--font-sans), system-ui, sans-serif",
+          fontSize: 10,
+          fontWeight: 600,
+          letterSpacing: "0.06em",
+          textTransform: "uppercase",
+          color: "#777",
           background: "transparent",
-          border: "1px solid #c4c1b6",
-          borderRadius: 4,
-          padding: "2px 8px",
+          border: "1px solid #d6d3c8",
+          borderRadius: 999,
+          padding: "3px 9px",
           cursor: "pointer",
+          transition: "background 120ms ease, color 120ms ease",
         }}
       >
         {hidden ? "Show" : "Hide"}

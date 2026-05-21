@@ -15,6 +15,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 GRID_SIZE = 5
 Voice = Literal["wry", "discoursey", "factual"]
 Direction = Literal["across", "down"]
+League = Literal["nba", "wnba"]
 
 
 class LetterCell(BaseModel):
@@ -59,9 +60,13 @@ class Entry(BaseModel):
 class Puzzle(BaseModel):
     model_config = ConfigDict(extra="forbid")
     date: str = Field(pattern=r"^\d{4}-\d{2}-\d{2}$")
-    # Sequential count since launch (1-indexed). Frontend renders this as
-    # "NBA Mini #N" on the splash screen. Pipeline computes it as the count
-    # of existing real puzzle files + 1.
+    # Which league this puzzle belongs to. The frontend uses this to set
+    # title text, color palette, and which storage key to read for streaks.
+    # The pipeline uses it to pick the right season-context, subreddit, and
+    # box-score endpoint.
+    league: League = "nba"
+    # Sequential count since launch (1-indexed), independent per league.
+    # Frontend renders as "NBA Mini #N" or "WNBA Mini #N" on the splash.
     puzzle_number: int = Field(ge=1)
     grid: Grid
     entries: list[Entry]

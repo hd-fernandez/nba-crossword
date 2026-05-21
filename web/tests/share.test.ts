@@ -12,7 +12,7 @@ import {
 import { parsePuzzle, type Puzzle } from "@/lib/puzzle";
 import { makeEmptyRevealed } from "@/lib/state";
 
-const EXAMPLE_PATH = resolve(__dirname, "../../puzzles/example.json");
+const EXAMPLE_PATH = resolve(__dirname, "../../puzzles/nba/example.json");
 
 function loadExamplePuzzle(): Puzzle {
   const raw = JSON.parse(readFileSync(EXAMPLE_PATH, "utf-8"));

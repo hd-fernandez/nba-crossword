@@ -8,6 +8,9 @@ export type Voice = z.infer<typeof VoiceSchema>;
 export const DirectionSchema = z.enum(["across", "down"]);
 export type Direction = z.infer<typeof DirectionSchema>;
 
+export const LeagueSchema = z.enum(["nba", "wnba"]);
+export type League = z.infer<typeof LeagueSchema>;
+
 const LetterCellSchema = z
   .object({ answer: z.string().regex(/^[A-Z]$/) })
   .strict();
@@ -51,7 +54,11 @@ export type Entry = z.infer<typeof EntrySchema>;
 const RawPuzzleSchema = z
   .object({
     date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-    // Sequential count since launch. Frontend renders as "NBA Mini #N".
+    // Which league this puzzle belongs to. Defaults to "nba" for back-compat
+    // with v0 fixtures written before the multi-league split. New puzzles
+    // always set it explicitly.
+    league: LeagueSchema.default("nba"),
+    // Sequential count since launch, independent per league.
     puzzle_number: z.number().int().min(1),
     grid: GridSchema,
     entries: z.array(EntrySchema),
@@ -185,27 +192,43 @@ export function todayInEastern(now: Date = new Date()): string {
 }
 
 /**
- * Fetch today's puzzle JSON.
+ * Fetch a puzzle JSON for the given league + date (default today).
  *
  * Returns `null` on 404 — the frontend treats that as the dormant "no puzzle
  * today" state (R6 / AE3). Any other failure (malformed JSON, schema
  * violation, network error) throws so the caller can surface a real error.
  *
- * Puzzles are served as static files at `/puzzles/<date>.json`. The
- * canonical source is the repo-root `puzzles/` directory; `scripts/sync-puzzles.mjs`
- * copies that into `web/public/puzzles/` on `predev` and `prebuild`.
+ * Puzzles are served as static files at `/puzzles/<league>/<date>.json`.
+ * The canonical source is the repo-root `puzzles/<league>/` directory;
+ * `scripts/sync-puzzles.mjs` copies that into `web/public/puzzles/` on
+ * `predev` and `prebuild`.
+ */
+export async function fetchPuzzle(
+  league: League,
+  date: string = todayInEastern(),
+  fetchImpl: typeof fetch = fetch,
+): Promise<Puzzle | null> {
+  const res = await fetchImpl(`/puzzles/${league}/${date}.json`, {
+    cache: "no-store",
+  });
+  if (res.status === 404) return null;
+  if (!res.ok) {
+    throw new Error(
+      `failed to fetch ${league} puzzle for ${date}: HTTP ${res.status}`,
+    );
+  }
+  const raw = await res.json();
+  return parsePuzzle(raw);
+}
+
+/**
+ * Back-compat shim — the v1 page-level fetch was league-naive. New callers
+ * should use `fetchPuzzle(league, date)` directly. This wrapper defaults to
+ * NBA so existing tests / call sites keep working through the v2 transition.
  */
 export async function fetchTodayPuzzle(
   date: string = todayInEastern(),
   fetchImpl: typeof fetch = fetch,
 ): Promise<Puzzle | null> {
-  const res = await fetchImpl(`/puzzles/${date}.json`, {
-    cache: "no-store",
-  });
-  if (res.status === 404) return null;
-  if (!res.ok) {
-    throw new Error(`failed to fetch puzzle for ${date}: HTTP ${res.status}`);
-  }
-  const raw = await res.json();
-  return parsePuzzle(raw);
+  return fetchPuzzle("nba", date, fetchImpl);
 }

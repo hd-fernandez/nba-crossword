@@ -1,13 +1,15 @@
 /**
- * localStorage-backed user state for the NBA Mini.
+ * localStorage-backed user state for the Mini.
  *
- * Single key (`STORAGE_KEY`), JSON-serialized. We deliberately keep the shape
- * tiny and version-tagged so that a future schema change can either migrate
+ * Single key (`STORAGE_KEY`), JSON-serialized. Per-league streaks live under
+ * `leagues.<league>` so a v2 user with separate NBA + WNBA streaks doesn't
+ * collide. The shape is version-tagged so future changes either migrate
  * forward or reset cleanly.
  *
- * Streak rule (per the v0 plan, U12):
+ * Streak rule (per the v0 plan, U12, applied per league at v2):
  *   - completion = streak day
- *   - off-days (no puzzle existed) skip; they neither break nor extend
+ *   - off-days (no puzzle existed in that league) skip; they neither break
+ *     nor extend
  *   - missed *puzzle* days break the streak
  *   - no grace mechanic
  *
@@ -19,21 +21,30 @@
  * without any DOM stub.
  */
 
+import type { League } from "./puzzle";
+
 export const STORAGE_KEY = "nba-mini-state";
-export const SCHEMA_VERSION = 1 as const;
+export const SCHEMA_VERSION = 2 as const;
 
 export interface Settings {
   /** Future-proofing for U13's persistent "hide timer" toggle. */
   timerHidden?: boolean;
 }
 
-export interface Storage {
+export interface LeagueState {
   /** ISO YYYY-MM-DD strings, sorted ascending, deduped. */
   completedDates: string[];
   /** ISO YYYY-MM-DD strings the app saw a 404 for. Sorted ascending, deduped. */
   knownOffDays: string[];
+}
+
+export interface Storage {
+  /** Per-league completion + off-day records. */
+  leagues: Record<League, LeagueState>;
+  /** Sticky preference: the league this user most recently *played*. */
+  lastPlayedLeague: League | null;
   settings: Settings;
-  /** Bump if the shape changes; v0 only handles v1. */
+  /** Bump if the shape changes. */
   schemaVersion: typeof SCHEMA_VERSION;
 }
 
@@ -52,10 +63,14 @@ export interface StorageBackend {
 // Defaults + validation
 // ---------------------------------------------------------------------------
 
+function emptyLeagueState(): LeagueState {
+  return { completedDates: [], knownOffDays: [] };
+}
+
 export function defaultState(): Storage {
   return {
-    completedDates: [],
-    knownOffDays: [],
+    leagues: { nba: emptyLeagueState(), wnba: emptyLeagueState() },
+    lastPlayedLeague: null,
     settings: {},
     schemaVersion: SCHEMA_VERSION,
   };
@@ -71,39 +86,99 @@ function isStringArrayOfDates(v: unknown): v is string[] {
   return Array.isArray(v) && v.every(isIsoDate);
 }
 
+function isLeague(v: unknown): v is League {
+  return v === "nba" || v === "wnba";
+}
+
+function normalizeLeagueState(raw: unknown): LeagueState {
+  if (!raw || typeof raw !== "object") {
+    return emptyLeagueState();
+  }
+  const obj = raw as Record<string, unknown>;
+  const completed = isStringArrayOfDates(obj.completedDates)
+    ? obj.completedDates
+    : [];
+  const offDays = isStringArrayOfDates(obj.knownOffDays)
+    ? obj.knownOffDays
+    : [];
+  return {
+    completedDates: sortedUnique(completed),
+    knownOffDays: sortedUnique(offDays),
+  };
+}
+
 /**
- * Best-effort validator for a deserialized payload. Returns a normalized
- * `Storage` if the shape is recognizable; throws otherwise. We sort + dedupe
- * the date arrays so downstream computation can rely on canonical form.
+ * Best-effort validator + migrator for a deserialized payload.
+ *
+ * Recognizes both v1 (flat completedDates/knownOffDays at the root) and v2
+ * (per-league `leagues.<league>` shape). On v1 → v2 migration, all legacy
+ * dates land under `leagues.nba` because v1 had no concept of leagues.
+ *
+ * Returns a normalized v2 `Storage`; throws if the input is recognizably
+ * neither shape.
  */
 function validateAndNormalize(raw: unknown): Storage {
   if (!raw || typeof raw !== "object") {
     throw new Error("storage payload is not an object");
   }
   const obj = raw as Record<string, unknown>;
+
+  // v1 → v2 migration path. Legacy users get their NBA history preserved;
+  // their WNBA state starts empty.
+  if (obj.schemaVersion === 1) {
+    const completed = isStringArrayOfDates(obj.completedDates)
+      ? obj.completedDates
+      : [];
+    const offDays = isStringArrayOfDates(obj.knownOffDays)
+      ? obj.knownOffDays
+      : [];
+    const settings = pickSettings(obj.settings);
+    return {
+      leagues: {
+        nba: {
+          completedDates: sortedUnique(completed),
+          knownOffDays: sortedUnique(offDays),
+        },
+        wnba: emptyLeagueState(),
+      },
+      lastPlayedLeague: completed.length > 0 ? "nba" : null,
+      settings,
+      schemaVersion: SCHEMA_VERSION,
+    };
+  }
+
   if (obj.schemaVersion !== SCHEMA_VERSION) {
     throw new Error(`unsupported schemaVersion: ${String(obj.schemaVersion)}`);
   }
-  if (!isStringArrayOfDates(obj.completedDates)) {
-    throw new Error("completedDates is not an array of ISO dates");
+
+  const leaguesRaw = obj.leagues as Record<string, unknown> | undefined;
+  if (!leaguesRaw || typeof leaguesRaw !== "object") {
+    throw new Error("leagues is missing or not an object");
   }
-  if (!isStringArrayOfDates(obj.knownOffDays)) {
-    throw new Error("knownOffDays is not an array of ISO dates");
-  }
-  if (!obj.settings || typeof obj.settings !== "object") {
-    throw new Error("settings is missing or not an object");
-  }
-  const settings = obj.settings as Record<string, unknown>;
-  const cleanSettings: Settings = {};
-  if (typeof settings.timerHidden === "boolean") {
-    cleanSettings.timerHidden = settings.timerHidden;
-  }
+
+  const lastPlayed = isLeague(obj.lastPlayedLeague)
+    ? obj.lastPlayedLeague
+    : null;
+
   return {
-    completedDates: sortedUnique(obj.completedDates),
-    knownOffDays: sortedUnique(obj.knownOffDays),
-    settings: cleanSettings,
+    leagues: {
+      nba: normalizeLeagueState(leaguesRaw.nba),
+      wnba: normalizeLeagueState(leaguesRaw.wnba),
+    },
+    lastPlayedLeague: lastPlayed,
+    settings: pickSettings(obj.settings),
     schemaVersion: SCHEMA_VERSION,
   };
+}
+
+function pickSettings(raw: unknown): Settings {
+  if (!raw || typeof raw !== "object") return {};
+  const settings = raw as Record<string, unknown>;
+  const out: Settings = {};
+  if (typeof settings.timerHidden === "boolean") {
+    out.timerHidden = settings.timerHidden;
+  }
+  return out;
 }
 
 function sortedUnique(dates: string[]): string[] {
@@ -114,17 +189,10 @@ function sortedUnique(dates: string[]): string[] {
 // Backend resolution
 // ---------------------------------------------------------------------------
 
-/**
- * Resolve the localStorage-like backend at call time. Returns `null` if
- * unavailable (SSR, private-mode quotas, or browsers that throw on access
- * to `globalThis.localStorage`). Wrapping in try/catch is paranoid but cheap.
- */
 function resolveBackend(): StorageBackend | null {
   try {
     const ls = (globalThis as { localStorage?: StorageBackend }).localStorage;
     if (!ls) return null;
-    // Touch it once — Safari private mode throws on `setItem`, not on read,
-    // but a missing API surface should fail here.
     if (
       typeof ls.getItem !== "function" ||
       typeof ls.setItem !== "function" ||
@@ -142,15 +210,9 @@ function resolveBackend(): StorageBackend | null {
 // Read / write
 // ---------------------------------------------------------------------------
 
-/**
- * Read state from the backend. Always returns *some* `Storage`:
- *   - missing key → fresh defaults
- *   - malformed JSON or invalid shape → fresh defaults (and a console warning)
- *   - backend unavailable → fresh defaults
- *
- * Never throws.
- */
-export function loadState(backend: StorageBackend | null = resolveBackend()): Storage {
+export function loadState(
+  backend: StorageBackend | null = resolveBackend(),
+): Storage {
   if (!backend) return defaultState();
   let raw: string | null;
   try {
@@ -163,8 +225,6 @@ export function loadState(backend: StorageBackend | null = resolveBackend()): St
     const parsed = JSON.parse(raw) as unknown;
     return validateAndNormalize(parsed);
   } catch (err) {
-    // Don't crash on tampered data; reset gracefully and warn so the user
-    // (or a future debugger) sees that a wipe happened.
     if (typeof console !== "undefined" && console.warn) {
       console.warn(
         "[nba-mini] resetting localStorage — stored value was malformed:",
@@ -180,12 +240,6 @@ export function loadState(backend: StorageBackend | null = resolveBackend()): St
   }
 }
 
-/**
- * Persist state to the backend. Silently no-ops if the backend is missing
- * or rejects the write (quota exceeded, private mode, etc.). This is fine
- * for v0 — losing an offline streak update is worse than crashing only on
- * machines that already can't persist.
- */
 export function saveState(
   state: Storage,
   backend: StorageBackend | null = resolveBackend(),
@@ -212,56 +266,82 @@ function withDate(list: string[], date: string): string[] {
   return [...list, date].sort();
 }
 
-/** Pure: returns a new state with `date` added to `completedDates`. */
-export function addCompletion(state: Storage, date: string): Storage {
-  return { ...state, completedDates: withDate(state.completedDates, date) };
+/** Pure: returns a new state with `date` added to a league's `completedDates`. */
+export function addCompletion(
+  state: Storage,
+  league: League,
+  date: string,
+): Storage {
+  const current = state.leagues[league];
+  return {
+    ...state,
+    leagues: {
+      ...state.leagues,
+      [league]: {
+        ...current,
+        completedDates: withDate(current.completedDates, date),
+      },
+    },
+    lastPlayedLeague: league,
+  };
 }
 
-/** Pure: returns a new state with `date` added to `knownOffDays`. */
-export function addOffDay(state: Storage, date: string): Storage {
-  return { ...state, knownOffDays: withDate(state.knownOffDays, date) };
+/** Pure: returns a new state with `date` added to a league's `knownOffDays`. */
+export function addOffDay(
+  state: Storage,
+  league: League,
+  date: string,
+): Storage {
+  const current = state.leagues[league];
+  return {
+    ...state,
+    leagues: {
+      ...state.leagues,
+      [league]: {
+        ...current,
+        knownOffDays: withDate(current.knownOffDays, date),
+      },
+    },
+  };
 }
 
 // ---------------------------------------------------------------------------
 // Read+mutate convenience
 // ---------------------------------------------------------------------------
 
-/**
- * Idempotently record that the user completed the puzzle on `date`. Reads
- * the current persisted state, adds the date (deduped + sorted), persists,
- * and returns the new state.
- */
 export function recordCompletion(
+  league: League,
   date: string,
   backend: StorageBackend | null = resolveBackend(),
 ): Storage {
-  const next = addCompletion(loadState(backend), date);
+  const next = addCompletion(loadState(backend), league, date);
   saveState(next, backend);
   return next;
 }
 
-/**
- * Idempotently record that `date` was an off-day (no puzzle existed). Called
- * by the page when `fetchTodayPuzzle()` returns null so streaks don't break
- * on dormant nights.
- */
 export function markOffDay(
+  league: League,
   date: string,
   backend: StorageBackend | null = resolveBackend(),
 ): Storage {
-  const next = addOffDay(loadState(backend), date);
+  const next = addOffDay(loadState(backend), league, date);
   saveState(next, backend);
   return next;
 }
 
-/** Read settings from persisted state. */
+/** Read the user's sticky last-played league preference. */
+export function getLastPlayedLeague(
+  backend: StorageBackend | null = resolveBackend(),
+): League | null {
+  return loadState(backend).lastPlayedLeague;
+}
+
 export function settings(
   backend: StorageBackend | null = resolveBackend(),
 ): Settings {
   return loadState(backend).settings;
 }
 
-/** Merge a settings patch into persisted state. */
 export function updateSettings(
   patch: Partial<Settings>,
   backend: StorageBackend | null = resolveBackend(),
@@ -279,17 +359,11 @@ export function updateSettings(
 // Streak computation
 // ---------------------------------------------------------------------------
 
-/**
- * Step `date` (ISO YYYY-MM-DD) backward by one day, returning the previous
- * ISO date. Pure UTC arithmetic — no timezone-dependent shifts.
- */
 export function previousDate(date: string): string {
   if (!isIsoDate(date)) {
     throw new Error(`invalid ISO date: ${date}`);
   }
   const [y, m, d] = date.split("-").map((s) => parseInt(s, 10));
-  // Construct a UTC date so day arithmetic doesn't get pulled into the local
-  // timezone. We treat ISO strings as opaque calendar dates.
   const t = Date.UTC(y, m - 1, d);
   const prev = new Date(t - 24 * 60 * 60 * 1000);
   const yy = prev.getUTCFullYear();
@@ -299,26 +373,24 @@ export function previousDate(date: string): string {
 }
 
 /**
- * Compute the current streak ending at `today`.
+ * Compute the current streak for `league` ending at `today`.
  *
- * Algorithm:
- *   cursor ← today
- *   while true:
- *     if cursor in completedDates: count++; cursor−=1d
- *     elif cursor in knownOffDays: cursor−=1d  (skip, don't break)
- *     else: break  (unknown day or missed-puzzle day → streak ends)
- *   return count
- *
- * To guard against pathological inputs (e.g., an enormous knownOffDays list
- * with no completions), we cap the walk at 10,000 iterations. v0 will never
- * hit that — a year is 365 — but it's cheap insurance.
+ * Algorithm walks backwards from today: completed days extend the streak,
+ * known off-days skip without breaking, anything else (unknown day or
+ * missed-puzzle day) terminates. Capped at 10k steps as paranoia against
+ * pathological inputs.
  */
-export function computeStreak(state: Storage, today: string): number {
+export function computeStreak(
+  state: Storage,
+  league: League,
+  today: string,
+): number {
   if (!isIsoDate(today)) {
     throw new Error(`invalid ISO date: ${today}`);
   }
-  const completed = new Set(state.completedDates);
-  const offDays = new Set(state.knownOffDays);
+  const ls = state.leagues[league];
+  const completed = new Set(ls.completedDates);
+  const offDays = new Set(ls.knownOffDays);
   let cursor = today;
   let count = 0;
   for (let i = 0; i < 10_000; i++) {
@@ -336,38 +408,27 @@ export function computeStreak(state: Storage, today: string): number {
   return count;
 }
 
-/**
- * Convenience: read state and compute the streak ending at `today`. After
- * the user completes today's puzzle, callers should `recordCompletion(today)`
- * first (so today is in `completedDates`) and then call this.
- */
 export function getStreak(
+  league: League,
   today: string,
   backend: StorageBackend | null = resolveBackend(),
 ): number {
-  return computeStreak(loadState(backend), today);
+  return computeStreak(loadState(backend), league, today);
 }
 
 /**
  * Streak to show for display *before* the user has completed today's puzzle.
- *
- * Today's status is undecided — not yet in `completedDates`, possibly not yet
- * in `knownOffDays` — so starting the cursor at `today` would always trip
- * over an unknown day and report 0. We instead start at *yesterday* so a
- * returning user with a five-day run sees "🔥 5" on load, not "0".
- *
- * Per the plan: "start the cursor at yesterday, not today, when computing
- * streak for display before completing today's puzzle."
+ * Starts the cursor at yesterday so a returning user with a 5-day streak
+ * sees "🔥 5" on load instead of "0".
  */
 export function getDisplayStreak(
+  league: League,
   today: string,
   backend: StorageBackend | null = resolveBackend(),
 ): number {
   const state = loadState(backend);
-  // If the user has already completed today (e.g., they're revisiting after
-  // solving), surface the post-completion streak — including today.
-  if (state.completedDates.includes(today)) {
-    return computeStreak(state, today);
+  if (state.leagues[league].completedDates.includes(today)) {
+    return computeStreak(state, league, today);
   }
-  return computeStreak(state, previousDate(today));
+  return computeStreak(state, league, previousDate(today));
 }

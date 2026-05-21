@@ -55,8 +55,8 @@ export function FinishScreen({
   // double-render in development (the initializer itself is invoked once).
   const [computedStreak] = useState<number>(() => {
     if (streak !== undefined) return streak;
-    const next = recordCompletion(puzzle.date);
-    return computeStreak(next, puzzle.date);
+    const next = recordCompletion(puzzle.league, puzzle.date);
+    return computeStreak(next, puzzle.league, puzzle.date);
   });
   const displayStreak = streak !== undefined ? streak : computedStreak;
 

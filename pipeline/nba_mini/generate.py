@@ -187,24 +187,20 @@ def run_pipeline(
     *,
     deps: Deps,
     puzzle_number: int = 1,
+    league: str = "nba",
 ) -> Puzzle | None:
     """Run the full pipeline for ``target_date``. Returns the ``Puzzle`` or None.
 
-    Returns ``None`` when nba.com reports no games for the date — the caller
+    Returns ``None`` when stats reports no games for the date — the caller
     treats this as the no-puzzle-today signal (R6 / AE3) and writes nothing.
 
-    Raises one of the typed pipeline errors on hard failure:
-      - ``RedditIngestError``     — reddit ingest failed
-      - ``NBAStatsError``         — nba.com ingest failed (parse or fetch)
-      - ``ClueLLMOutageError``    — LLM call failed repeatedly
-      - ``GridFillError``         — grid couldn't be filled
-      - ``InvalidCandidateError`` — candidates from the LLM were malformed
-        AND no fallback reduced them to a valid set (in practice we filter
-        invalids before fill, so this is defensive).
-      - ``ValidationError``       — pydantic rejected the assembled puzzle
-        (would indicate a structural bug, not a content issue).
+    The ``league`` arg threads through to the ``Puzzle`` it constructs;
+    season-context loading, ingest fetchers, and prompt assembly are
+    handled by the injected ``Deps``, so the orchestrator itself stays
+    league-agnostic.
 
-    The orchestrator does **not** catch any of these — ``main`` does, with a
+    Raises one of the typed pipeline errors on hard failure (see below).
+    The orchestrator does not catch any of them — ``main`` does, with a
     typed-error → exit-code mapping.
     """
     iso = target_date.isoformat()
@@ -259,6 +255,7 @@ def run_pipeline(
     # 8. Build + validate the puzzle. Pydantic enforces all invariants.
     puzzle = Puzzle(
         date=iso,
+        league=league,  # type: ignore[arg-type]
         puzzle_number=puzzle_number,
         grid=grid,
         entries=entries,

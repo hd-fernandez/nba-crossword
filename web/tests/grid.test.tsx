@@ -4,7 +4,7 @@ import { cleanup, render, screen, fireEvent } from "@testing-library/react";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
-import HomePage from "@/app/page";
+import { PuzzlePage } from "@/components/PuzzlePage";
 import { Grid } from "@/components/Grid";
 import { ClueBar } from "@/components/ClueBar";
 import {
@@ -16,7 +16,7 @@ import {
 } from "@/lib/state";
 import { parsePuzzle, type Puzzle } from "@/lib/puzzle";
 
-const EXAMPLE_PATH = resolve(__dirname, "../../puzzles/example.json");
+const EXAMPLE_PATH = resolve(__dirname, "../../puzzles/nba/example.json");
 
 function loadExamplePuzzle(): Puzzle {
   const raw = JSON.parse(readFileSync(EXAMPLE_PATH, "utf-8"));
@@ -307,7 +307,7 @@ describe("<HomePage> (integration)", () => {
     }));
     vi.stubGlobal("fetch", fetchMock);
 
-    render(<HomePage />);
+    render(<PuzzlePage league="nba" />);
     const dormant = await screen.findByTestId("no-puzzle");
     expect(dormant).toHaveTextContent(/no NBA games yesterday/i);
   });
@@ -321,7 +321,7 @@ describe("<HomePage> (integration)", () => {
     }));
     vi.stubGlobal("fetch", fetchMock);
 
-    render(<HomePage />);
+    render(<PuzzlePage league="nba" />);
     await screen.findByTestId("grid-wrapper");
     expect(screen.getByTestId("cell-0-0")).toBeInTheDocument();
     expect(screen.getByTestId("cell-0-4")).toHaveAttribute("data-block", "true");

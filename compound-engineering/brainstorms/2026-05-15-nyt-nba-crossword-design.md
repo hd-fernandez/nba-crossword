@@ -251,4 +251,6 @@ Hand off to **`/ce-plan`** to produce a v0 implementation plan with specific mil
 
 **v0 is implemented and on `feat/v0-foundation`.** Round-1 UX iteration shipped: photo background, splash overlay with sequential puzzle numbering, dismissable finish screen, auto-advance on word completion. Pending real-clue demo (waiting on Snowflake Cortex auth — no Anthropic API key available).
 
+**Roadmap collapsed.** v0.5 quality work and v1 native-app work both deferred indefinitely. Going straight from v0 to **v2 (multi-league WNBA)** because scope-expansion identity ("we are a basketball app, not an NBA app") is the right thing to commit to before more polish on a single-league product. Quality work folds in as we iterate.
+
 Two new directions added to the roadmap (v2 multi-league, v3 Spelling Bee) — see brainstorm sibling docs linked from the Roadmap section above.
