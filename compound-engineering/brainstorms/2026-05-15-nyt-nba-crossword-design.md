@@ -193,11 +193,33 @@ Side-project scale. ~$0–10/month target.
 - Friend leaderboards / share-time competitions
 - Add X/Twitter as a discourse source if missing material is a real problem
 
+### v2 — "two leagues, one ritual"
+**See:** [2026-05-21-multi-league-wnba-design.md](2026-05-21-multi-league-wnba-design.md) for the full design.
+
+- WNBA puzzle as a first-class peer to NBA, not a fallback
+- Path-prefixed routing: `/nba/` and `/wnba/` with smart-default at `/`
+- Per-league streaks, season contexts, and visual identities (orange-leaning WNBA palette)
+- Cron generates both leagues per day; either, both, or neither may have puzzles
+- Sticky last-played-league preference; calendar fallback for cold starts
+- "Also today: WNBA" cross-league discovery chip
+- Schema gets a required `league` field; existing puzzles back-migrated to `league: nba`
+
+### v3 — "Hoops Spelling Bee"
+**See:** [2026-05-21-spelling-bee-design.md](2026-05-21-spelling-bee-design.md) for the full design.
+
+- NYT-Bee mechanic with hoops player/coach/owner last names as the corpus
+- Hoops-flavored tier ladder: Undrafted → G League call-up → Rookie → Sophomore → Vet → All-Star → Champion → Hall of Famer → GOAT
+- Three flavors: `/nba/bee`, `/wnba/bee`, `/bee` (combined)
+- Pre-computed daily puzzles from a curated names corpus; refreshed quarterly
+- Operating cost ~$0 (no LLM in the Bee loop)
+- Cross-promotional surfaces between crossword and Bee on the same league
+
 ### Later / maybe
 - Sunday extended puzzle
 - Themed puzzles for marquee events (Game 7, deadline, draft, opener)
 - Archive / play-old-puzzles mode (probably needs accounts)
 - Subscription tier (NYT model)
+- G League / EuroLeague / NCAA expansions (way later — only if the two-league rhythm proves itself)
 
 ---
 
@@ -222,3 +244,11 @@ Live mockups at [compound-engineering/brainstorms/mockups/index.html](mockups/in
 ## Next step
 
 Hand off to **`/ce-plan`** to produce a v0 implementation plan with specific milestones, file structure, and first-week tasks. Plan should reference this doc as the source of truth and not relitigate decisions made above.
+
+---
+
+## Status update — 2026-05-21
+
+**v0 is implemented and on `feat/v0-foundation`.** Round-1 UX iteration shipped: photo background, splash overlay with sequential puzzle numbering, dismissable finish screen, auto-advance on word completion. Pending real-clue demo (waiting on Snowflake Cortex auth — no Anthropic API key available).
+
+Two new directions added to the roadmap (v2 multi-league, v3 Spelling Bee) — see brainstorm sibling docs linked from the Roadmap section above.
