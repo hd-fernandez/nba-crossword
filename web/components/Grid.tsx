@@ -145,7 +145,15 @@ function GridImpl(
       style={{
         outline: "none",
         position: "relative",
-        display: "inline-block",
+        // The wrapper's parent is a flex column whose default `align-items:
+        // stretch` would otherwise make this 100% wide, leaving the grid
+        // container's dark background visible to the right of the cells.
+        // `align-self: flex-start` + `width: fit-content` keeps the wrapper
+        // hugging the actual grid, and we center it within the card via
+        // `margin: 0 auto` so the puzzle reads as the visual centerpiece.
+        alignSelf: "center",
+        width: "fit-content",
+        margin: "0 auto",
       }}
     >
       <div
@@ -160,6 +168,7 @@ function GridImpl(
           borderRadius: 6,
           overflow: "hidden",
           boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+          width: "fit-content",
         }}
       >
         {puzzle.grid.cells.map((row, r) =>
