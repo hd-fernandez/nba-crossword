@@ -1,0 +1,207 @@
+# NBA names corpus for the Hoops Spelling Bee (v3).
+#
+# Format: one entry per line, three pipe-delimited fields:
+#     NAME|TYPE|DISPLAY
+#   - NAME    uppercase, A–Z only, diacritics stripped, punctuation removed
+#   - TYPE    one of: last, first_mononym, nickname
+#   - DISPLAY original casing + punctuation, used in the found-names list
+#
+# Length rule: NAME between 4 and 10 letters. Names of valid players whose
+# name length falls outside that window are intentionally excluded — the Bee
+# can't form them on a 7-letter board anyway.
+#
+# Inclusion rule (v3 starter, hand-curated):
+#   - Currently rostered players you'd recognize from a SportsCenter highlight
+#   - All-time greats with broad cultural footprint
+#   - Mononym first names that read as "iconic" (LeBron, Magic, Shaq, Wemby)
+#   - Nicknames that have crossed into mainstream coverage (Greek Freak, etc.)
+#
+# This is intentionally a starter list, not exhaustive. Grow over time as we
+# see what the Bee surfaces and what users complain about. v3.5+ will
+# automate refresh from `nba_api` with a games-played fame floor.
+
+# ---- Active / recent stars ----
+LEBRON|first_mononym|LeBron
+JAMES|last|LeBron James
+CURRY|last|Steph Curry
+STEPH|first_mononym|Steph
+DURANT|last|Kevin Durant
+GIANNIS|first_mononym|Giannis
+DONCIC|last|Luka Doncic
+LUKA|first_mononym|Luka
+TATUM|last|Jayson Tatum
+EMBIID|last|Joel Embiid
+JOKIC|last|Nikola Jokic
+LILLARD|last|Damian Lillard
+MORANT|last|Ja Morant
+EDWARDS|last|Anthony Edwards
+HALIBURTON|last|Tyrese Haliburton
+WEMBY|first_mononym|Wemby
+WEMBANYAMA|last|Victor Wembanyama
+BUTLER|last|Jimmy Butler
+LEONARD|last|Kawhi Leonard
+KAWHI|first_mononym|Kawhi
+HARDEN|last|James Harden
+PAUL|last|Chris Paul
+WESTBROOK|last|Russell Westbrook
+GOBERT|last|Rudy Gobert
+BOOKER|last|Devin Booker
+GEORGE|last|Paul George
+DAVIS|last|Anthony Davis
+MITCHELL|last|Donovan Mitchell
+GARLAND|last|Darius Garland
+BANCHERO|last|Paolo Banchero
+HOLMGREN|last|Chet Holmgren
+WAGNER|last|Franz Wagner
+BARNES|last|Scottie Barnes
+MURRAY|last|Jamal Murray
+ANTHONY|last|Carmelo Anthony
+
+# ---- All-time greats ----
+JORDAN|last|Michael Jordan
+KOBE|first_mononym|Kobe
+BRYANT|last|Kobe Bryant
+SHAQ|first_mononym|Shaq
+ONEAL|last|Shaquille O'Neal
+MAGIC|first_mononym|Magic
+JOHNSON|last|Magic Johnson
+BIRD|last|Larry Bird
+KAREEM|first_mononym|Kareem
+JABBAR|last|Kareem Abdul-Jabbar
+RUSSELL|last|Bill Russell
+WILT|first_mononym|Wilt
+CHAMBERLAIN|last|Wilt Chamberlain
+ROBERTSON|last|Oscar Robertson
+WEST|last|Jerry West
+ERVING|last|Julius Erving
+ISIAH|first_mononym|Isiah
+THOMAS|last|Isiah Thomas
+BARKLEY|last|Charles Barkley
+MALONE|last|Karl Malone
+STOCKTON|last|John Stockton
+PIPPEN|last|Scottie Pippen
+RODMAN|last|Dennis Rodman
+EWING|last|Patrick Ewing
+OLAJUWON|last|Hakeem Olajuwon
+DUNCAN|last|Tim Duncan
+GARNETT|last|Kevin Garnett
+DIRK|first_mononym|Dirk
+NOWITZKI|last|Dirk Nowitzki
+NASH|last|Steve Nash
+GINOBILI|last|Manu Ginobili
+PARKER|last|Tony Parker
+WADE|last|Dwyane Wade
+PIERCE|last|Paul Pierce
+ALLEN|last|Ray Allen
+IVERSON|last|Allen Iverson
+KIDD|last|Jason Kidd
+NOAH|first_mononym|Joakim
+MUTOMBO|last|Dikembe Mutombo
+MILLER|last|Reggie Miller
+MOURNING|last|Alonzo Mourning
+ROBINSON|last|David Robinson
+DREXLER|last|Clyde Drexler
+PAYTON|last|Gary Payton
+
+# ---- Distinctive / tier-2 names ----
+GREEN|last|Draymond Green
+THOMPSON|last|Klay Thompson
+KLAY|first_mononym|Klay
+PORZINGIS|last|Kristaps Porzingis
+DEROZAN|last|DeMar DeRozan
+LOWRY|last|Kyle Lowry
+BEAL|last|Bradley Beal
+KYRIE|first_mononym|Kyrie
+IRVING|last|Kyrie Irving
+ROSE|last|Derrick Rose
+HOWARD|last|Dwight Howard
+MELO|first_mononym|Melo
+RANDLE|last|Julius Randle
+SABONIS|last|Domantas Sabonis
+ADEBAYO|last|Bam Adebayo
+SIAKAM|last|Pascal Siakam
+INGRAM|last|Brandon Ingram
+ZION|first_mononym|Zion
+WILLIAMSON|last|Zion Williamson
+MAXEY|last|Tyrese Maxey
+BROWN|last|Jaylen Brown
+WHITE|last|Derrick White
+HOLIDAY|last|Jrue Holiday
+PORTER|last|Michael Porter Jr.
+SMART|last|Marcus Smart
+HORFORD|last|Al Horford
+LOPEZ|last|Brook Lopez
+MIDDLETON|last|Khris Middleton
+TOWNS|last|Karl-Anthony Towns
+RUSSELL|last|D'Angelo Russell
+JACKSON|last|Jaren Jackson Jr.
+BRIDGES|last|Mikal Bridges
+WIGGINS|last|Andrew Wiggins
+MARKKANEN|last|Lauri Markkanen
+SENGUN|last|Alperen Sengun
+BARRETT|last|RJ Barrett
+ANUNOBY|last|OG Anunoby
+HARTENSTEIN|last|Isaiah Hartenstein
+BROGDON|last|Malcolm Brogdon
+GRANT|last|Jerami Grant
+SIMMONS|last|Ben Simmons
+POOLE|last|Jordan Poole
+KUZMA|last|Kyle Kuzma
+HACHIMURA|last|Rui Hachimura
+REAVES|last|Austin Reaves
+VANVLEET|last|Fred VanVleet
+WALKER|last|Lonnie Walker
+HUERTER|last|Kevin Huerter
+HUNTER|last|De'Andre Hunter
+MURPHY|last|Trey Murphy
+CARUSO|last|Alex Caruso
+SHARPE|last|Shaedon Sharpe
+HENDERSON|last|Scoot Henderson
+MILLER|last|Brandon Miller
+JEROME|last|Ty Jerome
+SMITH|last|Jabari Smith Jr.
+GREEN|last|Jalen Green
+KESSLER|last|Walker Kessler
+
+# ---- Coaches (current head coaches that fans know) ----
+KERR|last|Steve Kerr
+SPOELSTRA|last|Erik Spoelstra
+POPOVICH|last|Gregg Popovich
+POP|first_mononym|Pop
+RILEY|last|Pat Riley
+JACKSON|last|Phil Jackson
+THIBODEAU|last|Tom Thibodeau
+CARLISLE|last|Rick Carlisle
+SNYDER|last|Quin Snyder
+MAZZULLA|last|Joe Mazzulla
+MALONE|last|Michael Malone
+BUDENHOLZER|last|Mike Budenholzer
+MCMILLAN|last|Nate McMillan
+
+# ---- Owners / front-office figures (recognizable) ----
+CUBAN|last|Mark Cuban
+LACOB|last|Joe Lacob
+TEPPER|last|David Tepper
+DUMARS|last|Joe Dumars
+PRESTI|last|Sam Presti
+MORLEY|last|Daryl Morey
+MOREY|last|Daryl Morey
+AINGE|last|Danny Ainge
+PERA|last|Robert Pera
+
+# ---- Iconic nicknames ----
+GOAT|nickname|GOAT
+MAMBA|nickname|Black Mamba
+MISTERFOURTH|nickname|Mr. Fourth Quarter
+ICEMAN|nickname|The Iceman
+DREAM|nickname|The Dream
+ANSWER|nickname|The Answer
+TRUTH|nickname|The Truth
+ADMIRAL|nickname|The Admiral
+GLOVE|nickname|The Glove
+WORM|nickname|The Worm
+KING|nickname|King James
+FREAK|nickname|Greek Freak
+JOKER|nickname|The Joker
+BEARD|nickname|The Beard
+SLIM|nickname|Slim Reaper

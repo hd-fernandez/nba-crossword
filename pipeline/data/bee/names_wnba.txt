@@ -1,0 +1,112 @@
+# WNBA names corpus for the Hoops Spelling Bee (v3).
+#
+# Format: NAME|TYPE|DISPLAY (same as names_nba.txt)
+# Length rule: NAME between 4 and 10 letters.
+#
+# Inclusion rule (v3 starter, hand-curated):
+#   - Currently rostered players you'd recognize from a Fever or Aces highlight
+#   - All-time greats with broad cultural footprint
+#   - Mononym first names that read as iconic in WNBA discourse (A'ja, Sue,
+#     Caitlin, Sabrina, Diana, Stewie)
+#   - Nicknames that have crossed into mainstream coverage
+#
+# Less deep than the NBA corpus because the league is younger; expand as
+# users tell us what they expect. WNBA fame floor is "3 seasons OR award OR
+# currently active" — by hand we apply that loosely; the automated refresh
+# (post v3.5) will enforce it programmatically.
+
+# ---- Active stars (2026 rosters) ----
+WILSON|last|A'ja Wilson
+AJA|first_mononym|A'ja
+CLARK|last|Caitlin Clark
+CAITLIN|first_mononym|Caitlin
+STEWART|last|Breanna Stewart
+STEWIE|first_mononym|Stewie
+IONESCU|last|Sabrina Ionescu
+SABRINA|first_mononym|Sabrina
+JONES|last|Jonquel Jones
+PLUM|last|Kelsey Plum
+GRAY|last|Chelsea Gray
+YOUNG|last|Jackie Young
+HAMBY|last|Dearica Hamby
+LOYD|last|Jewell Loyd
+GRINER|last|Brittney Griner
+THOMAS|last|Alyssa Thomas
+COLLIER|last|Napheesa Collier
+NAPHEESA|first_mononym|Napheesa
+REESE|last|Angel Reese
+BUEKERT|last|Paige Bueckers
+PAIGE|first_mononym|Paige
+BOSTON|last|Aliyah Boston
+ALIYAH|first_mononym|Aliyah
+MITCHELL|last|Kelsey Mitchell
+HOWARD|last|Natasha Howard
+COPPER|last|Kahleah Copper
+KAHLEAH|first_mononym|Kahleah
+CARRINGTON|last|DiJonai Carrington
+CARTER|last|Chennedy Carter
+OGUNBOWALE|last|Arike Ogunbowale
+ARIKE|first_mononym|Arike
+DELLE|last|Elena Delle Donne
+ELENA|first_mononym|Elena
+WHITCOMB|last|Sami Whitcomb
+PARKER|last|Candace Parker
+CANDACE|first_mononym|Candace
+
+# ---- All-time greats ----
+TAURASI|last|Diana Taurasi
+DIANA|first_mononym|Diana
+BIRD|last|Sue Bird
+SUE|first_mononym|Sue
+CATCHINGS|last|Tamika Catchings
+TAMIKA|first_mononym|Tamika
+LESLIE|last|Lisa Leslie
+SWOOPES|last|Sheryl Swoopes
+SHERYL|first_mononym|Sheryl
+LOBO|last|Rebecca Lobo
+COOPER|last|Cynthia Cooper
+HOLDSCLAW|last|Chamique Holdsclaw
+JACKSON|last|Lauren Jackson
+JAMES|last|Tina James
+LAUREN|first_mononym|Lauren
+NOLAN|last|Deanna Nolan
+HAMMON|last|Becky Hammon
+BECKY|first_mononym|Becky
+WHITE|last|Tamera White
+PARKER|last|Candace Parker
+PONDEXTER|last|Cappie Pondexter
+CAPPIE|first_mononym|Cappie
+
+# ---- Younger / role players (recognizable) ----
+NURSE|last|Kia Nurse
+HOWARD|last|Bri Howard
+WAUTERS|last|Emma Wauters
+HAYES|last|Tyasha Hayes
+MAGBEGOR|last|Ezi Magbegor
+JUHASZ|last|Dorka Juhasz
+SHEPPARD|last|Rickea Sheppard
+MABREY|last|Marina Mabrey
+MARINA|first_mononym|Marina
+LITTLE|last|Camille Little
+QUEVEDO|last|Ari Quevedo
+NWABA|last|Aishah Nwaba
+RUPERT|last|Leonie Rupert
+RHYNE|last|Rhyne Howard
+RHYNE|first_mononym|Rhyne
+RICKARD|last|Sika Koné
+NWAOSU|last|Ezi Nwaosu
+
+# ---- Coaches ----
+HAMMON|last|Becky Hammon
+LAIMBEER|last|Bill Laimbeer
+THIBAULT|last|Mike Thibault
+DONOVAN|last|Anne Donovan
+STALEY|last|Dawn Staley
+DAWN|first_mononym|Dawn
+OGWUMIKE|last|Nneka Ogwumike
+
+# ---- Iconic figures + nicknames ----
+GOAT|nickname|GOAT
+QUEEN|nickname|Queen
+MISSY|nickname|Missy
+DIESEL|nickname|Diesel

@@ -8,6 +8,7 @@ dependencies = [
     "requests>=2.31",
     "nba_api>=1.4",
     "anthropic>=0.34",
+    "snowflake-connector-python>=3.12",
 ]
 
 [project.optional-dependencies]
