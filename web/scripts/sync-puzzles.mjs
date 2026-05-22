@@ -27,23 +27,28 @@ if (!existsSync(SRC)) {
 
 mkdirSync(DST, { recursive: true });
 
-let totalCopied = 0;
-for (const league of LEAGUES) {
-  const srcLeague = join(SRC, league);
-  const dstLeague = join(DST, league);
-  if (!existsSync(srcLeague)) continue;
-  mkdirSync(dstLeague, { recursive: true });
+function copyJsonFiles(srcDir, dstDir) {
+  if (!existsSync(srcDir)) return 0;
+  mkdirSync(dstDir, { recursive: true });
   let copied = 0;
-  for (const name of readdirSync(srcLeague)) {
-    if (!name.endsWith(".json")) continue;
-    const srcPath = join(srcLeague, name);
-    const dstPath = join(dstLeague, name);
+  for (const name of readdirSync(srcDir)) {
+    const srcPath = join(srcDir, name);
     if (!statSync(srcPath).isFile()) continue;
-    copyFileSync(srcPath, dstPath);
+    if (!name.endsWith(".json")) continue;
+    copyFileSync(srcPath, join(dstDir, name));
     copied += 1;
   }
-  console.log(`[sync-puzzles] ${league}: copied ${copied} file(s)`);
-  totalCopied += copied;
+  return copied;
+}
+
+let totalCopied = 0;
+for (const league of LEAGUES) {
+  // Crossword puzzles at puzzles/<league>/*.json
+  const xword = copyJsonFiles(join(SRC, league), join(DST, league));
+  // Bee puzzles at puzzles/<league>/bee/*.json
+  const bee = copyJsonFiles(join(SRC, league, "bee"), join(DST, league, "bee"));
+  console.log(`[sync-puzzles] ${league}: ${xword} crossword, ${bee} bee`);
+  totalCopied += xword + bee;
 }
 
 console.log(`[sync-puzzles] total: ${totalCopied} puzzle file(s)`);
