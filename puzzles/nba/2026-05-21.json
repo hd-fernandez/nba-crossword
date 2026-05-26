@@ -1,0 +1,30 @@
+{
+  "date": "2026-05-21",
+  "league": "nba",
+  "puzzle_number": 1,
+  "grid": {
+    "size": 5,
+    "cells": [
+      [{"answer": "S"}, {"answer": "P"}, {"answer": "A"}, {"answer": "R"}, {"block": true}],
+      [{"answer": "T"}, {"answer": "A"}, {"answer": "R"}, {"answer": "O"}, {"answer": "T"}],
+      [{"answer": "A"}, {"answer": "R"}, {"answer": "E"}, {"answer": "N"}, {"answer": "A"}],
+      [{"answer": "M"}, {"answer": "I"}, {"answer": "N"}, {"answer": "E"}, {"answer": "D"}],
+      [{"block": true}, {"answer": "P"}, {"answer": "O"}, {"answer": "S"}, {"answer": "E"}]
+    ]
+  },
+  "entries": [
+    {"id": "1A",  "direction": "across", "row": 0, "col": 0, "answer": "SPAR",  "clue": "Practice fight; what teammates do in shootaround.", "voice": "wry"},
+    {"id": "1D",  "direction": "down",   "row": 0, "col": 0, "answer": "STAM",  "clue": "Test fixture; not a real word.",                    "voice": "factual"},
+    {"id": "2D",  "direction": "down",   "row": 0, "col": 1, "answer": "PARIP", "clue": "Test fixture; not a real word.",                    "voice": "factual"},
+    {"id": "3D",  "direction": "down",   "row": 0, "col": 2, "answer": "ARENO", "clue": "Test fixture; not a real word.",                    "voice": "factual"},
+    {"id": "4D",  "direction": "down",   "row": 0, "col": 3, "answer": "RONES", "clue": "Test fixture; not a real word.",                    "voice": "factual"},
+    {"id": "5A",  "direction": "across", "row": 1, "col": 0, "answer": "TAROT", "clue": "Mystic deck.",                                       "voice": "wry"},
+    {"id": "6D",  "direction": "down",   "row": 1, "col": 4, "answer": "TADE",  "clue": "Test fixture; not a real word.",                    "voice": "factual"},
+    {"id": "7A",  "direction": "across", "row": 2, "col": 0, "answer": "ARENA", "clue": "Where last night's drama unfolded.",                "voice": "discoursey"},
+    {"id": "8A",  "direction": "across", "row": 3, "col": 0, "answer": "MINED", "clue": "Pulled out, like analytics from a box score.",      "voice": "wry"},
+    {"id": "9A",  "direction": "across", "row": 4, "col": 1, "answer": "POSE",  "clue": "What you strike after a poster dunk.",              "voice": "discoursey"}
+  ],
+  "season_context_version": "example",
+  "generated_at": "2026-05-15T10:00:00Z",
+  "model": "example-fixture"
+}
