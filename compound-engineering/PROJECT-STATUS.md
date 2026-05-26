@@ -1,6 +1,6 @@
 # nba-crossword Project Status
 
-**Last updated:** 2026-05-22
+**Last updated:** 2026-05-26
 
 This doc is the single-page answer to "where are we and what's left." Update it after every major milestone or session pause. Treat it as the always-current map; brainstorms and plans are the deeper docs underneath.
 
@@ -8,11 +8,12 @@ This doc is the single-page answer to "where are we and what's left." Update it 
 
 ## What's done
 
-- **v0 — NBA daily crossword.** Pipeline (Python on GH Actions), Next.js PWA frontend, schema, tests, deploy-ready. Working locally right now.
-- **v2 — WNBA peer league.** Same URL, two leagues. `/nba` and `/wnba` with smart redirect at `/`. Per-league streaks, season contexts, palettes (NBA red / WNBA orange). Cross-league discovery chip.
+- **v0 — NBA daily crossword.** Pipeline (Python on GH Actions), Next.js PWA frontend, schema, tests, deploy-ready.
+- **v2 — WNBA peer league.** `/nba` and `/wnba` with smart redirect at `/`. Per-league streaks, season contexts, palettes (NBA red / WNBA orange). Cross-league discovery chip.
+- **v3 — Spelling Bee.** Hand-curated names corpus + active-roster auto-merge from `nba_api`. Six implementation units (corpus → schema → generator → hex UI → tier ladder → share). Three routes live: `/nba/bee`, `/wnba/bee`, `/all/bee`. GOAT celebration modal, share text, finish-dismiss state.
 - **UX iteration round 1.** Photo backdrop, splash overlay with sequential `#N`, dismissable finish modal, auto-advance on word completion, real fonts (Fraunces + Inter).
 
-Branch: `feat/v0-foundation` on `hd-fernandez/nba-crossword`. Latest commit: `3c43847`.
+Branch: `main` on `hd-fernandez/nba-crossword`. Latest commit: `cdba564`. Tests: 219 pipeline + 151 web passing. Routes: 7.
 
 ---
 
@@ -28,13 +29,13 @@ The pipeline currently calls a stub LLM. To generate real clues we need either a
 
 Once #1 clears: generate 3–5 real puzzles, Henry rates them, prompt files get edited based on the feedback, regenerate. This is the rate-and-rank loop. It's the work that makes the product *good*. Nothing about the engine changes — only the prompts in `pipeline/nba_mini/prompts/`.
 
-### 3. Spelling Bee (v3)
-
-Additive new game, doesn't need the LLM. Six implementation units — corpus, schema, generator algorithm, hexagon UI, tier ladder, share. **This is what we're building right now while #1 is blocked.**
-
-### 4. Production deploy
+### 3. Production deploy
 
 Vercel hookup + GH Actions cron actually running on a schedule. Last step. Depends on #1 being resolved.
+
+### 4. (Optional) U7 — Bee generator algorithm tuning
+
+WNBA Bees still cap at ~3–4 valid names per puzzle even after expanding the corpus to ~150 names. Diagnosed as algorithm bottleneck, not data depth: the greedy first-match board-pick walks away from richer boards. Broader board search + scoring would lift NBA from ~10 to 15+ and WNBA into the same range. See [solutions/2026-05-26-bee-v3.md](solutions/2026-05-26-bee-v3.md).
 
 ---
 
@@ -46,6 +47,7 @@ Vercel hookup + GH Actions cron actually running on a schedule. Last step. Depen
 - [v0 plan](plans/2026-05-17-001-feat-nba-mini-v0-plan.md)
 - [v2 skeleton plan](plans/2026-05-21-002-feat-multi-league-wnba-skeleton-plan.md)
 - [v3 skeleton plan](plans/2026-05-21-003-feat-spelling-bee-skeleton-plan.md)
+- [v3 learnings](solutions/2026-05-26-bee-v3.md)
 
 ---
 
@@ -56,7 +58,7 @@ Vercel hookup + GH Actions cron actually running on a schedule. Last step. Depen
 - **Per-league streaks** (independent, no merging).
 - **Bee corpus:** last names + mononym first names + iconic nicknames. Fame floor: NBA 100 games OR award OR currently active; WNBA 3 seasons OR award OR currently active.
 - **Bee tiers:** Undrafted → G League call-up → Rookie → Sophomore → Vet → All-Star → Champion → Hall of Famer → GOAT.
-- **Roadmap collapsed:** v0.5 quality work and v1 native-app work both deferred indefinitely. Going v0 → v2 → v3.
+- **Roadmap collapsed:** v0.5 quality work and v1 native-app work both deferred indefinitely. v0 → v2 → v3 shipped.
 
 ---
 
@@ -71,3 +73,4 @@ Vercel hookup + GH Actions cron actually running on a schedule. Last step. Depen
 - Real WNBA hero photo (currently a generic basketball shot).
 - Production icons (192/512/180 raster).
 - Vercel project setup (root dir = `web/`).
+- Historical roster fold-in with fame-floor filter (NBA pre-active, WNBA pre-active).
