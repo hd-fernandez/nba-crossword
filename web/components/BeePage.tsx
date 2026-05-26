@@ -110,22 +110,14 @@ export function BeePage({ league }: BeePageProps) {
         }}
       >
         <div style={{ maxWidth: 540, margin: "0 auto" }}>
-          <header
-            style={{
-              marginBottom: 12,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              gap: 12,
-            }}
-          >
+          <header style={{ marginBottom: 14 }}>
             <h1
               style={{
                 fontFamily:
                   'var(--font-serif), "Iowan Old Style", Georgia, serif',
                 fontSize: 36,
                 fontWeight: 600,
-                margin: 0,
+                margin: "0 0 4px",
                 letterSpacing: "-0.015em",
                 color: "#fffdf6",
                 textShadow: "0 1px 2px rgba(0,0,0,0.5)",
@@ -133,6 +125,19 @@ export function BeePage({ league }: BeePageProps) {
             >
               Hoops Bee
             </h1>
+            <p
+              style={{
+                margin: 0,
+                fontSize: 13,
+                color: "rgba(255, 253, 246, 0.72)",
+                letterSpacing: "0.01em",
+                lineHeight: 1.45,
+              }}
+            >
+              Form names of {league === "wnba" ? "WNBA" : league === "nba" ? "NBA" : "hoops"}
+              {" "}players, coaches &amp; staff using the 7 letters. Every name must use the
+              {" "}<strong style={{ color: accent }}>center letter</strong>. Min 4 letters; reuse letters anytime.
+            </p>
           </header>
 
           <div
@@ -346,8 +351,19 @@ function BeeBoard({ puzzle, accent }: { puzzle: BeePuzzle; accent: string }) {
       {/* Entry bar */}
       <EntryBar entry={state.entry} feedback={state.lastFeedback} feedbackKey={state.feedbackKey} />
 
-      {/* Hexagon hive */}
-      <div style={{ margin: "20px 0" }}>
+      {/* Hexagon hive — pulses on a correct submission */}
+      <div
+        key={state.feedbackKey}
+        data-testid="bee-hive-wrapper"
+        data-correct={state.lastFeedback?.kind === "ok" ? "true" : "false"}
+        style={{
+          margin: "20px 0",
+          animation:
+            state.lastFeedback?.kind === "ok"
+              ? "bee-correct-pulse 360ms ease-out"
+              : undefined,
+        }}
+      >
         <BeeHive
           puzzle={puzzle}
           outerOrder={outerOrder}
@@ -355,6 +371,20 @@ function BeeBoard({ puzzle, accent }: { puzzle: BeePuzzle; accent: string }) {
           accent={accent}
         />
       </div>
+      {/* Keyframes for the animation. Inline so we don't need a global stylesheet. */}
+      <style>{`
+        @keyframes bee-correct-pulse {
+          0%   { transform: scale(1); }
+          40%  { transform: scale(1.05); }
+          100% { transform: scale(1); }
+        }
+        @keyframes bee-feedback-rise {
+          0%   { transform: translateY(0); opacity: 0; }
+          15%  { transform: translateY(-8px); opacity: 1; }
+          80%  { transform: translateY(-18px); opacity: 1; }
+          100% { transform: translateY(-26px); opacity: 0; }
+        }
+      `}</style>
 
       {/* Action buttons */}
       <div
@@ -441,10 +471,13 @@ function EntryBar({
             right: 0,
             top: "100%",
             marginTop: 4,
-            fontSize: 12,
-            fontWeight: 500,
+            fontSize: message.large ? 14 : 12,
+            fontWeight: message.large ? 700 : 500,
             letterSpacing: "0.03em",
             color: message.color,
+            animation: message.animate
+              ? "bee-feedback-rise 1200ms ease-out forwards"
+              : undefined,
           }}
         >
           {message.text}
@@ -454,25 +487,54 @@ function EntryBar({
   );
 }
 
-function feedbackToMessage(f: EntryFeedback): { text: string; color: string } {
+interface FeedbackMessage {
+  text: string;
+  color: string;
+  animate: boolean;
+  large: boolean;
+}
+
+function feedbackToMessage(f: EntryFeedback): FeedbackMessage {
   switch (f.kind) {
     case "ok":
       return {
         text: f.isPangram
-          ? `+${f.pointsGained} — Pangram! 🐝`
+          ? `Posterized! +${f.pointsGained} 🏀`
           : `+${f.pointsGained}`,
-        color: "#2e7d32",
+        color: f.isPangram ? "#c8102e" : "#2e7d32",
+        animate: true,
+        large: f.isPangram,
       };
     case "tooShort":
-      return { text: "Too short", color: "#888" };
+      return { text: "Too short", color: "#888", animate: false, large: false };
     case "missingCenter":
-      return { text: "Must include the center letter", color: "#888" };
+      return {
+        text: "Must include the center letter",
+        color: "#888",
+        animate: false,
+        large: false,
+      };
     case "badLetters":
-      return { text: "Letters not on the board", color: "#888" };
+      return {
+        text: "Letters not on the board",
+        color: "#888",
+        animate: false,
+        large: false,
+      };
     case "alreadyFound":
-      return { text: "Already found", color: "#888" };
+      return {
+        text: "Already found",
+        color: "#888",
+        animate: false,
+        large: false,
+      };
     case "notInList":
-      return { text: "Not in our list", color: "#a04040" };
+      return {
+        text: "Not in our list",
+        color: "#a04040",
+        animate: false,
+        large: false,
+      };
   }
 }
 

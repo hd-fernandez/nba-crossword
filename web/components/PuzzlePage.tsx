@@ -172,15 +172,19 @@ export function PuzzlePage({ league }: PuzzlePageProps) {
               alignItems: "center",
               justifyContent: "space-between",
               gap: 12,
+              flexWrap: "wrap",
             }}
           >
             <LeagueToggle current={league} />
-            {otherLeagueAvailable && (
-              <CrossLeagueChip
-                otherLeague={otherLeagueAvailable.league}
-                puzzleNumber={otherLeagueAvailable.puzzle_number}
-              />
-            )}
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              {otherLeagueAvailable && (
+                <CrossLeagueChip
+                  otherLeague={otherLeagueAvailable.league}
+                  puzzleNumber={otherLeagueAvailable.puzzle_number}
+                />
+              )}
+              <BeeLinkChip league={league} accent={cfg.theme.accent} />
+            </div>
           </div>
 
           {status.kind === "loading" && (
@@ -268,6 +272,35 @@ export function PuzzlePage({ league }: PuzzlePageProps) {
         </div>
       </main>
     </>
+  );
+}
+
+function BeeLinkChip({ league, accent }: { league: League; accent: string }) {
+  return (
+    <a
+      href={`/${league}/bee`}
+      data-testid="bee-link-chip"
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 6,
+        fontSize: 12,
+        padding: "5px 12px",
+        borderRadius: 999,
+        background: "rgba(255, 253, 246, 0.12)",
+        backdropFilter: "blur(4px)",
+        WebkitBackdropFilter: "blur(4px)",
+        border: `1px solid ${accent}66`,
+        color: "#fffdf6",
+        textDecoration: "none",
+        letterSpacing: "0.02em",
+        whiteSpace: "nowrap",
+        fontWeight: 600,
+      }}
+    >
+      <span aria-hidden>🐝</span>
+      <span>Hoops Bee</span>
+    </a>
   );
 }
 
