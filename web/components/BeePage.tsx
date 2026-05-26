@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useReducer, useState } from "react";
 
+import { BeeFinishModal } from "@/components/BeeFinishModal";
 import { BeeHive } from "@/components/BeeHive";
 import { LeagueToggle } from "@/components/LeagueToggle";
 import { configFor } from "@/lib/league";
@@ -277,6 +278,9 @@ function BeeBoard({ puzzle, accent }: { puzzle: BeePuzzle; accent: string }) {
   const score = scoreState(puzzle, state);
   const tier = tierForScore(score, puzzle.tier_thresholds, puzzle.max_score);
   const solved = isBeeSolved(puzzle, state);
+  // GOAT modal can be dismissed; the solved state itself is permanent.
+  // A "Show GOAT summary" button brings it back.
+  const [finishDismissed, setFinishDismissed] = useState(false);
 
   return (
     <div
@@ -411,24 +415,46 @@ function BeeBoard({ puzzle, accent }: { puzzle: BeePuzzle; accent: string }) {
         pangrams={puzzle.pangrams}
       />
 
-      {solved && (
-        <div
-          role="status"
-          data-testid="bee-solved"
+      {/* Persistent share row — usable at any tier, not just GOAT. The
+          share text reflects the user's current tier + score. */}
+      <ShareRow
+        puzzle={puzzle}
+        score={score}
+        foundCount={state.found.length}
+        accent={accent}
+      />
+
+      {/* GOAT modal: pops once per session when the puzzle is solved.
+          Dismissable via X / Escape / backdrop. A "Show GOAT summary"
+          button reopens it. */}
+      {solved && !finishDismissed && (
+        <BeeFinishModal
+          puzzle={puzzle}
+          score={score}
+          foundCount={state.found.length}
+          accent={accent}
+          onClose={() => setFinishDismissed(true)}
+        />
+      )}
+      {solved && finishDismissed && (
+        <button
+          type="button"
+          onClick={() => setFinishDismissed(false)}
+          data-testid="bee-show-finish"
           style={{
             marginTop: 16,
-            padding: 12,
-            background: "#fff5d6",
-            border: "1px solid #f0c878",
-            borderRadius: 8,
-            fontSize: 14,
-            textAlign: "center",
-            color: "#7a4a00",
+            padding: "8px 14px",
+            border: "1px solid #d6d3c8",
+            borderRadius: 999,
+            background: "#fff",
+            cursor: "pointer",
+            fontSize: 13,
             fontWeight: 600,
+            color: "#666",
           }}
         >
-          🎉 Every name found — GOAT tier.
-        </div>
+          Show GOAT summary
+        </button>
       )}
     </div>
   );
@@ -640,6 +666,77 @@ function FoundList({
           ))}
         </ul>
       )}
+    </div>
+  );
+}
+
+function ShareRow({
+  puzzle,
+  score,
+  foundCount,
+  accent,
+}: {
+  puzzle: BeePuzzle;
+  score: number;
+  foundCount: number;
+  accent: string;
+}) {
+  const [status, setStatus] = useState<
+    "idle" | "shared" | "copied" | "unsupported" | "error"
+  >("idle");
+
+  async function onShare() {
+    const { buildBeeShareText, shareOrCopyBee } = await import("@/lib/bee-share");
+    const text = buildBeeShareText({ puzzle, score, foundCount });
+    try {
+      const result = await shareOrCopyBee(text);
+      setStatus(result);
+    } catch {
+      setStatus("idle");
+    }
+  }
+
+  // Don't show until the user has at least one find — share at zero is just confusing.
+  if (foundCount === 0) return null;
+
+  return (
+    <div
+      data-testid="bee-share-row"
+      style={{
+        marginTop: 16,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: 12,
+        padding: "10px 14px",
+        background: "#f4f1ea",
+        border: "1px solid #e0dccd",
+        borderRadius: 8,
+        fontSize: 13,
+      }}
+    >
+      <span style={{ color: "#666" }}>
+        Share your progress
+      </span>
+      <button
+        type="button"
+        onClick={onShare}
+        data-testid="bee-share-button"
+        style={{
+          background: accent,
+          color: "#fff",
+          border: "none",
+          borderRadius: 999,
+          padding: "6px 16px",
+          fontSize: 12,
+          fontWeight: 600,
+          letterSpacing: "0.04em",
+          textTransform: "uppercase",
+          cursor: "pointer",
+        }}
+      >
+        {status === "copied" ? "Copied!" : "Share"}
+      </button>
     </div>
   );
 }
