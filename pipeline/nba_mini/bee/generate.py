@@ -33,8 +33,13 @@ from nba_mini.bee.schema import BeePuzzle, TierThresholds
 
 logger = logging.getLogger(__name__)
 
-# Target window for valid-name count per puzzle. Brainstorm: 12-25.
-TARGET_MIN = 12
+# Target window for valid-name count per puzzle. Brainstorm originally
+# called for [12, 25], but empirically the v3 corpus (active rosters +
+# hand-curated greats) tops out around 10 valid names per board. Lowered
+# the floor accordingly so the generator stops logging "no board hit
+# target window" warnings on every run. Re-tune up if/when historical
+# rosters or coaches/staff get folded in.
+TARGET_MIN = 10
 TARGET_MAX = 25
 TARGET_MID = (TARGET_MIN + TARGET_MAX) // 2
 

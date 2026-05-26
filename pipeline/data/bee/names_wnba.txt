@@ -110,3 +110,63 @@ GOAT|nickname|GOAT
 QUEEN|nickname|Queen
 MISSY|nickname|Missy
 DIESEL|nickname|Diesel
+
+# ---- Auto-added from nba_api roster pull (2026-05-26) ----
+MAKANI|last|Monique Akoa Makani
+ALLEMAND|last|Julie Allemand
+ALLEN|last|Lindsay Allen
+ANDERSON|last|Yvonne Anderson
+BADIANE|last|Marième Badiane
+BARKER|last|Sarah Ashlee Barker
+BERGER|last|Grace Berger
+BIBBY|last|Chloe Bibby
+BRADFORD|last|Crystal Bradford
+BROWN|last|Jaelyn Brown
+CARLETON|last|Bridget Carleton
+CHARLES|last|Tina Charles
+COLSON|last|Sydney Colson
+DAVIS|last|Marquesha Davis
+DIABY|last|Kariata Diaby
+ENGSTLER|last|Emily Engstler
+EVANS|last|Dana Evans
+FAGBENLE|last|Temi Fagbenle
+FIEBICH|last|Leonie Fiebich
+GUSTAFSON|last|Megan Gustafson
+HALL|last|Bree Hall
+HARRISON|last|Isabelle Harrison
+HARTLEY|last|Bria Hartley
+HELD|last|Lexi Held
+JEFFERSON|last|Moriah Jefferson
+KITLEY|last|Elizabeth Kitley
+LACAN|last|Leila Lacan
+LAKSA|last|Kitija Laksa
+LAMBERT|last|Kyra Lambert
+LEITE|last|Carla Leite
+MARSHALL|last|Rayah Marshall
+MCCONNELL|last|Megan McConnell
+MCCOWAN|last|Teaira McCowan
+MCDONALD|last|Aari McDonald
+MEESSEMAN|last|Emma Meesseman
+MUSA|last|Murjanatu Musa
+OKONKWO|last|Amy Okonkwo
+PARKS|last|Robyn Parks
+PEDDY|last|Shey Peddy
+PETERS|last|Haley Peters
+PETTY|last|Ajae Petty
+PILI|last|Alissa Pili
+POWERS|last|Aerial Powers
+PRINCE|last|Alexis Prince
+QUINERLY|last|JJ Quinerly
+RUSSELL|last|Mercedes Russell
+SABALLY|last|Nyara Sabally
+SCOTT|last|Madison Scott
+SHERROD|last|Jaylyn Sherrod
+SUNDELL|last|Serena Sundell
+SUTTON|last|Sug Sutton
+SYKES|last|Brittney Sykes
+TAYLOR|last|Camryn Taylor
+TOURE|last|Mamignan Toure
+UZUN|last|Sevgi Uzun
+VANLOO|last|Julie Vanloo
+WESTBELD|last|Kathryn Westbeld
+WILLIAMS|last|Christyn Williams
