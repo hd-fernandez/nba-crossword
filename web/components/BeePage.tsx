@@ -499,7 +499,7 @@ function feedbackToMessage(f: EntryFeedback): FeedbackMessage {
     case "ok":
       return {
         text: f.isPangram
-          ? `Posterized! +${f.pointsGained} 🏀`
+          ? `Pangram! +${f.pointsGained} 🐝`
           : `+${f.pointsGained}`,
         color: f.isPangram ? "#c8102e" : "#2e7d32",
         animate: true,
