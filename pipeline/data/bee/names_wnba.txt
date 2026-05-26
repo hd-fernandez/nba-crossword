@@ -105,6 +105,71 @@ STALEY|last|Dawn Staley
 DAWN|first_mononym|Dawn
 OGWUMIKE|last|Nneka Ogwumike
 
+# ---- All-time greats (hand-curated retired figures) ----
+# These are pre-2025 figures with broad cultural footprint — Hall of
+# Famers, multi-time All-Stars, dynasty-era stars, league founders.
+# Length-window filtered (4-10 letters); duplicates with the active
+# roster are deduped at corpus-load time.
+EDWARDS|last|Teresa Edwards
+WOODARD|last|Lynette Woodard
+DONOVAN|last|Anne Donovan
+LIEBERMAN|last|Nancy Lieberman
+LESLIE|last|Lisa Leslie
+COOPER|last|Cynthia Cooper
+PERROT|last|Kim Perrot
+THOMPSON|last|Tina Thompson
+SWOOPES|last|Sheryl Swoopes
+JACKSON|last|Lauren Jackson
+SMITH|last|Katie Smith
+PALMER|last|Ruth Riley
+MILTON|last|DeLisha Milton-Jones
+WEATHERSPOON|last|Teresa Weatherspoon
+LOBO|last|Rebecca Lobo
+HOLDSCLAW|last|Chamique Holdsclaw
+WILLIAMS|last|Natalie Williams
+TEASLEY|last|Nikki Teasley
+SALES|last|Nykesha Sales
+CASH|last|Swin Cash
+CATCHINGS|last|Tamika Catchings
+PONDEXTER|last|Cappie Pondexter
+WHALEN|last|Lindsay Whalen
+AUGUSTUS|last|Seimone Augustus
+MOORE|last|Maya Moore
+PARKER|last|Candace Parker
+DELLE|last|Elena Delle Donne
+CHARLES|last|Tina Charles
+FOWLES|last|Sylvia Fowles
+DUPREE|last|Candice Dupree
+MCCOUGHTRY|last|Angel McCoughtry
+JACKSON|last|Tamika Jackson
+NOLAN|last|Deanna Nolan
+PIERSON|last|Bethany Donaphin
+
+# ---- Coaches (current + historic, recognizable) ----
+SUMMITT|last|Pat Summitt
+AURIEMMA|last|Geno Auriemma
+MULKEY|last|Kim Mulkey
+STALEY|last|Dawn Staley
+REEVE|last|Cheryl Reeve
+LAIMBEER|last|Bill Laimbeer
+HAMMON|last|Becky Hammon
+
+# ---- Mononym first names (iconic in WNBA discourse) ----
+TERESA|first_mononym|Teresa
+LISA|first_mononym|Lisa
+SHERYL|first_mononym|Sheryl
+SWIN|first_mononym|Swin
+TAMIKA|first_mononym|Tamika
+SEIMONE|first_mononym|Seimone
+CANDACE|first_mononym|Candace
+SYLVIA|first_mononym|Sylvia
+ANGEL|first_mononym|Angel
+PAIGE|first_mononym|Paige
+KAMILLA|first_mononym|Kamilla
+KELSEY|first_mononym|Kelsey
+ELENA|first_mononym|Elena
+REBECCA|first_mononym|Rebecca
+
 # ---- Iconic figures + nicknames ----
 GOAT|nickname|GOAT
 QUEEN|nickname|Queen
