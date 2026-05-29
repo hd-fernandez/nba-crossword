@@ -1,0 +1,41 @@
+{
+  "date": "2026-05-29",
+  "league": "nba",
+  "bee_number": 1,
+  "center_letter": "S",
+  "outer_letters": [
+    "A",
+    "C",
+    "E",
+    "I",
+    "L",
+    "R"
+  ],
+  "valid_names": [
+    "CARLISLE",
+    "CISSE",
+    "ELLIS",
+    "ISAAC",
+    "REESE",
+    "SALLIS",
+    "SARIC",
+    "SARR",
+    "SASSER",
+    "SEARS"
+  ],
+  "pangrams": [
+    "CARLISLE"
+  ],
+  "tier_thresholds": {
+    "g_league_callup": 1.0,
+    "rookie": 5.0,
+    "sophomore": 12.0,
+    "vet": 22.0,
+    "all_star": 35.0,
+    "champion": 50.0,
+    "hall_of_famer": 70.0,
+    "goat": 100.0
+  },
+  "max_score": 58,
+  "generated_at": "2026-05-29T19:03:57.660765Z"
+}
