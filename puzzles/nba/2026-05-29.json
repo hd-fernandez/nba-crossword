@@ -1,0 +1,140 @@
+{
+  "date": "2026-05-29",
+  "league": "nba",
+  "puzzle_number": 1,
+  "grid": {
+    "size": 5,
+    "cells": [
+      [
+        { "block": true },
+        { "answer": "S" },
+        { "answer": "P" },
+        { "answer": "A" },
+        { "block": true }
+      ],
+      [
+        { "answer": "S" },
+        { "answer": "T" },
+        { "answer": "O" },
+        { "answer": "R" },
+        { "answer": "E" }
+      ],
+      [
+        { "answer": "O" },
+        { "answer": "I" },
+        { "answer": "L" },
+        { "answer": "E" },
+        { "answer": "R" }
+      ],
+      [
+        { "answer": "P" },
+        { "answer": "L" },
+        { "answer": "A" },
+        { "answer": "N" },
+        { "answer": "E" }
+      ],
+      [
+        { "block": true },
+        { "answer": "E" },
+        { "answer": "R" },
+        { "answer": "A" },
+        { "block": true }
+      ]
+    ]
+  },
+  "entries": [
+    {
+      "id": "1A",
+      "direction": "across",
+      "row": 0,
+      "col": 1,
+      "answer": "SPA",
+      "clue": "Where a hobbled star ices the knees on a back-to-back.",
+      "voice": "wry"
+    },
+    {
+      "id": "1D",
+      "direction": "down",
+      "row": 0,
+      "col": 1,
+      "answer": "STILE",
+      "clue": "Turnstile, minus the turn; a step-over at the gate.",
+      "voice": "factual"
+    },
+    {
+      "id": "2D",
+      "direction": "down",
+      "row": 0,
+      "col": 2,
+      "answer": "POLAR",
+      "clue": "Like the opposite ends of a 'best vs. worst defense' debate.",
+      "voice": "discoursey"
+    },
+    {
+      "id": "3D",
+      "direction": "down",
+      "row": 0,
+      "col": 3,
+      "answer": "ARENA",
+      "clue": "Where last night's drama unfolded.",
+      "voice": "discoursey"
+    },
+    {
+      "id": "4A",
+      "direction": "across",
+      "row": 1,
+      "col": 0,
+      "answer": "STORE",
+      "clue": "Team ___: where the new City jerseys drop.",
+      "voice": "wry"
+    },
+    {
+      "id": "4D",
+      "direction": "down",
+      "row": 1,
+      "col": 0,
+      "answer": "SOP",
+      "clue": "Token concession, like garbage-time minutes.",
+      "voice": "factual"
+    },
+    {
+      "id": "5D",
+      "direction": "down",
+      "row": 1,
+      "col": 4,
+      "answer": "ERE",
+      "clue": "Before, in old poetry — and before the buzzer.",
+      "voice": "factual"
+    },
+    {
+      "id": "6A",
+      "direction": "across",
+      "row": 2,
+      "col": 0,
+      "answer": "OILER",
+      "clue": "Houston nine of old, sharing a city with the Rockets.",
+      "voice": "factual"
+    },
+    {
+      "id": "7A",
+      "direction": "across",
+      "row": 3,
+      "col": 0,
+      "answer": "PLANE",
+      "clue": "How the road trip gets from arena to arena.",
+      "voice": "wry"
+    },
+    {
+      "id": "8A",
+      "direction": "across",
+      "row": 4,
+      "col": 1,
+      "answer": "ERA",
+      "clue": "What every dynasty eventually is said to define.",
+      "voice": "discoursey"
+    }
+  ],
+  "season_context_version": "hand-authored",
+  "generated_at": "2026-05-29T13:00:00Z",
+  "model": "hand-authored"
+}

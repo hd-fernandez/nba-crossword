@@ -1,0 +1,140 @@
+{
+  "date": "2026-05-29",
+  "league": "wnba",
+  "puzzle_number": 1,
+  "grid": {
+    "size": 5,
+    "cells": [
+      [
+        { "block": true },
+        { "answer": "S" },
+        { "answer": "P" },
+        { "answer": "A" },
+        { "block": true }
+      ],
+      [
+        { "answer": "T" },
+        { "answer": "I" },
+        { "answer": "A" },
+        { "answer": "R" },
+        { "answer": "A" }
+      ],
+      [
+        { "answer": "U" },
+        { "answer": "N" },
+        { "answer": "D" },
+        { "answer": "E" },
+        { "answer": "R" }
+      ],
+      [
+        { "answer": "B" },
+        { "answer": "U" },
+        { "answer": "R" },
+        { "answer": "N" },
+        { "answer": "T" }
+      ],
+      [
+        { "block": true },
+        { "answer": "S" },
+        { "answer": "E" },
+        { "answer": "A" },
+        { "block": true }
+      ]
+    ]
+  },
+  "entries": [
+    {
+      "id": "1A",
+      "direction": "across",
+      "row": 0,
+      "col": 1,
+      "answer": "SPA",
+      "clue": "Recovery-day destination on a long road swing.",
+      "voice": "wry"
+    },
+    {
+      "id": "1D",
+      "direction": "down",
+      "row": 0,
+      "col": 1,
+      "answer": "SINUS",
+      "clue": "___ infection; the kind of nagging thing that lands a starter as questionable.",
+      "voice": "factual"
+    },
+    {
+      "id": "2D",
+      "direction": "down",
+      "row": 0,
+      "col": 2,
+      "answer": "PADRE",
+      "clue": "Father, in Spanish — across town from the WNBA's newest crowds.",
+      "voice": "factual"
+    },
+    {
+      "id": "3D",
+      "direction": "down",
+      "row": 0,
+      "col": 3,
+      "answer": "ARENA",
+      "clue": "Where last night's drama unfolded.",
+      "voice": "discoursey"
+    },
+    {
+      "id": "4A",
+      "direction": "across",
+      "row": 1,
+      "col": 0,
+      "answer": "TIARA",
+      "clue": "Crown for a champion — or a finals MVP's victory-night flex.",
+      "voice": "wry"
+    },
+    {
+      "id": "4D",
+      "direction": "down",
+      "row": 1,
+      "col": 0,
+      "answer": "TUB",
+      "clue": "Cold ___: postgame recovery ritual.",
+      "voice": "factual"
+    },
+    {
+      "id": "5D",
+      "direction": "down",
+      "row": 1,
+      "col": 4,
+      "answer": "ART",
+      "clue": "What a perfectly run set play becomes.",
+      "voice": "discoursey"
+    },
+    {
+      "id": "6A",
+      "direction": "across",
+      "row": 2,
+      "col": 0,
+      "answer": "UNDER",
+      "clue": "The bet you take when the pace screams defense.",
+      "voice": "discoursey"
+    },
+    {
+      "id": "7A",
+      "direction": "across",
+      "row": 3,
+      "col": 0,
+      "answer": "BURNT",
+      "clue": "How a defender feels after a nasty crossover.",
+      "voice": "wry"
+    },
+    {
+      "id": "8A",
+      "direction": "across",
+      "row": 4,
+      "col": 1,
+      "answer": "SEA",
+      "clue": "Seattle squad, in box-score shorthand.",
+      "voice": "factual"
+    }
+  ],
+  "season_context_version": "hand-authored",
+  "generated_at": "2026-05-29T13:00:00Z",
+  "model": "hand-authored"
+}
