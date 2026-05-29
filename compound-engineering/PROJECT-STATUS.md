@@ -1,6 +1,6 @@
 # nba-crossword Project Status
 
-**Last updated:** 2026-05-26
+**Last updated:** 2026-05-29
 
 This doc is the single-page answer to "where are we and what's left." Update it after every major milestone or session pause. Treat it as the always-current map; brainstorms and plans are the deeper docs underneath.
 
@@ -19,19 +19,29 @@ Branch: `main` on `hd-fernandez/nba-crossword`. Latest commit: `cdba564`. Tests:
 
 ## What's left, in order
 
-### 1. LLM auth (blocked on you)
+### 1. LLM auth — RESOLVED via Bedrock (2026-05-29)
 
-The pipeline currently calls a stub LLM. To generate real clues we need either a Snowflake service account or a personal Anthropic API key.
+The Snowflake-Cortex path is abandoned. Claude is reachable through **Amazon Bedrock** using Henry's existing AWS SSO profile (`nba-bedrock`, account `042122908126`, role `Data-Strategy-Team-Access`, region `us-east-1`) — the same path Claude Code itself uses (`CLAUDE_CODE_USE_BEDROCK`). No API key, no admin request needed.
 
-**Status:** asking the data team. Personal user can't `ALTER USER` to set keypair — needs admin help or a service-account provision.
+Wired into the pipeline as a selectable backend:
+- `BedrockClueLLM` in `pipeline/nba_mini/clues.py` (sibling of `AnthropicClueLLM`, shares `_extract_text`).
+- `Deps.production(backend=...)` selects `"anthropic"` or `"bedrock"`; defaults to `$NBA_MINI_LLM_BACKEND` then `"anthropic"`.
+- CLI: `python -m nba_mini.generate --backend bedrock`.
+- **Gotcha:** Bedrock requires the region-prefixed *inference-profile* ID (`us.anthropic.claude-sonnet-4-6`), not the bare model ID — `BEDROCK_DEFAULT_MODEL`.
+
+Verified live: today's NBA + WNBA puzzles (2026-05-29) have real Bedrock-generated clues.
 
 ### 2. Refine clues + answer picks
 
-Once #1 clears: generate 3–5 real puzzles, Henry rates them, prompt files get edited based on the feedback, regenerate. This is the rate-and-rank loop. It's the work that makes the product *good*. Nothing about the engine changes — only the prompts in `pipeline/nba_mini/prompts/`.
+Now unblocked. Generate 3–5 real puzzles, Henry rates them, prompt files in `pipeline/nba_mini/prompts/` get edited, regenerate. The rate-and-rank loop — the work that makes the product *good*.
 
-### 3. Production deploy
+### 3. Fix Reddit ingest (was hidden behind #1)
 
-Vercel hookup + GH Actions cron actually running on a schedule. Last step. Depends on #1 being resolved.
+`fetch_yesterday_discourse` 403s on the unauthenticated `r/nba/top.json` endpoint — Reddit now blocks anonymous JSON. Today's puzzles were generated with an empty reddit digest as a workaround. Needs a proper authenticated client (OAuth app + UA) or a different discourse source. Blocks the *full* daily pipeline and the GH Actions cron.
+
+### 4. Production deploy
+
+Vercel hookup + GH Actions cron on a schedule. The cron also needs a Bedrock auth path that works headless (IAM role via OIDC — the runner has no SSO session) plus the Reddit fix (#3).
 
 ### 4. (Optional) U7 — Bee generator algorithm tuning
 
@@ -64,7 +74,8 @@ WNBA Bees still cap at ~3–4 valid names per puzzle even after expanding the co
 
 ## Blockers
 
-- **Snowflake auth.** Personal user can't set keypair. Asking data team for a service account or admin-installed keypair. Slack template lives in the May 22 conversation.
+- **~~Snowflake auth~~ — RESOLVED.** Abandoned Snowflake-Cortex; using Amazon Bedrock via AWS SSO instead (see What's-left #1). No outstanding LLM-auth blocker for local runs.
+- **Reddit 403** (see What's-left #3) — blocks the full daily pipeline and the GH Actions cron, not local clue generation.
 
 ---
 

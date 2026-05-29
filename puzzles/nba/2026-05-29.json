@@ -6,39 +6,89 @@
     "size": 5,
     "cells": [
       [
-        { "block": true },
-        { "answer": "S" },
-        { "answer": "P" },
-        { "answer": "A" },
-        { "block": true }
+        {
+          "block": true
+        },
+        {
+          "answer": "S"
+        },
+        {
+          "answer": "P"
+        },
+        {
+          "answer": "A"
+        },
+        {
+          "block": true
+        }
       ],
       [
-        { "answer": "S" },
-        { "answer": "T" },
-        { "answer": "O" },
-        { "answer": "R" },
-        { "answer": "E" }
+        {
+          "answer": "S"
+        },
+        {
+          "answer": "T"
+        },
+        {
+          "answer": "O"
+        },
+        {
+          "answer": "R"
+        },
+        {
+          "answer": "E"
+        }
       ],
       [
-        { "answer": "O" },
-        { "answer": "I" },
-        { "answer": "L" },
-        { "answer": "E" },
-        { "answer": "R" }
+        {
+          "answer": "O"
+        },
+        {
+          "answer": "I"
+        },
+        {
+          "answer": "L"
+        },
+        {
+          "answer": "E"
+        },
+        {
+          "answer": "R"
+        }
       ],
       [
-        { "answer": "P" },
-        { "answer": "L" },
-        { "answer": "A" },
-        { "answer": "N" },
-        { "answer": "E" }
+        {
+          "answer": "P"
+        },
+        {
+          "answer": "L"
+        },
+        {
+          "answer": "A"
+        },
+        {
+          "answer": "N"
+        },
+        {
+          "answer": "E"
+        }
       ],
       [
-        { "block": true },
-        { "answer": "E" },
-        { "answer": "R" },
-        { "answer": "A" },
-        { "block": true }
+        {
+          "block": true
+        },
+        {
+          "answer": "E"
+        },
+        {
+          "answer": "R"
+        },
+        {
+          "answer": "A"
+        },
+        {
+          "block": true
+        }
       ]
     ]
   },
@@ -49,8 +99,8 @@
       "row": 0,
       "col": 1,
       "answer": "SPA",
-      "clue": "Where a hobbled star ices the knees on a back-to-back.",
-      "voice": "wry"
+      "clue": "Where players get rubdowns between playoff rounds.",
+      "voice": "factual"
     },
     {
       "id": "1D",
@@ -58,8 +108,8 @@
       "row": 0,
       "col": 1,
       "answer": "STILE",
-      "clue": "Turnstile, minus the turn; a step-over at the gate.",
-      "voice": "factual"
+      "clue": "Fence gap that keeps the cows in and the crossword solvers guessing.",
+      "voice": "wry"
     },
     {
       "id": "2D",
@@ -67,8 +117,8 @@
       "row": 0,
       "col": 2,
       "answer": "POLAR",
-      "clue": "Like the opposite ends of a 'best vs. worst defense' debate.",
-      "voice": "discoursey"
+      "clue": "Like the Bears — cold home court, deep playoff run.",
+      "voice": "wry"
     },
     {
       "id": "3D",
@@ -76,8 +126,8 @@
       "row": 0,
       "col": 3,
       "answer": "ARENA",
-      "clue": "Where last night's drama unfolded.",
-      "voice": "discoursey"
+      "clue": "Where playoff games are played.",
+      "voice": "factual"
     },
     {
       "id": "4A",
@@ -85,8 +135,8 @@
       "row": 1,
       "col": 0,
       "answer": "STORE",
-      "clue": "Team ___: where the new City jerseys drop.",
-      "voice": "wry"
+      "clue": "Where the team shops for their next big piece, basically",
+      "voice": "discoursey"
     },
     {
       "id": "4D",
@@ -94,8 +144,8 @@
       "row": 1,
       "col": 0,
       "answer": "SOP",
-      "clue": "Token concession, like garbage-time minutes.",
-      "voice": "factual"
+      "clue": "Just how playoff rotations go, nothing new here",
+      "voice": "discoursey"
     },
     {
       "id": "5D",
@@ -103,8 +153,8 @@
       "row": 1,
       "col": 4,
       "answer": "ERE",
-      "clue": "Before, in old poetry — and before the buzzer.",
-      "voice": "factual"
+      "clue": "Before, to a coach who still diagrams plays on a whiteboard.",
+      "voice": "wry"
     },
     {
       "id": "6A",
@@ -112,8 +162,8 @@
       "row": 2,
       "col": 0,
       "answer": "OILER",
-      "clue": "Houston nine of old, sharing a city with the Rockets.",
-      "voice": "factual"
+      "clue": "Houston's old nickname before Harden era, retro jersey collectors still hyped",
+      "voice": "discoursey"
     },
     {
       "id": "7A",
@@ -121,7 +171,7 @@
       "row": 3,
       "col": 0,
       "answer": "PLANE",
-      "clue": "How the road trip gets from arena to arena.",
+      "clue": "What playoff teams spend half May boarding.",
       "voice": "wry"
     },
     {
@@ -130,11 +180,11 @@
       "row": 4,
       "col": 1,
       "answer": "ERA",
-      "clue": "What every dynasty eventually is said to define.",
-      "voice": "discoursey"
+      "clue": "Pre-Wemby Spurs basketball, for nostalgic purposes.",
+      "voice": "wry"
     }
   ],
-  "season_context_version": "hand-authored",
-  "generated_at": "2026-05-29T13:00:00Z",
-  "model": "hand-authored"
+  "season_context_version": "1f391562",
+  "generated_at": "2026-05-29T13:30:00Z",
+  "model": "us.anthropic.claude-sonnet-4-6"
 }

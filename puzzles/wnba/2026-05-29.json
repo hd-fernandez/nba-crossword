@@ -6,39 +6,89 @@
     "size": 5,
     "cells": [
       [
-        { "block": true },
-        { "answer": "S" },
-        { "answer": "P" },
-        { "answer": "A" },
-        { "block": true }
+        {
+          "block": true
+        },
+        {
+          "answer": "S"
+        },
+        {
+          "answer": "P"
+        },
+        {
+          "answer": "A"
+        },
+        {
+          "block": true
+        }
       ],
       [
-        { "answer": "T" },
-        { "answer": "I" },
-        { "answer": "A" },
-        { "answer": "R" },
-        { "answer": "A" }
+        {
+          "answer": "T"
+        },
+        {
+          "answer": "I"
+        },
+        {
+          "answer": "A"
+        },
+        {
+          "answer": "R"
+        },
+        {
+          "answer": "A"
+        }
       ],
       [
-        { "answer": "U" },
-        { "answer": "N" },
-        { "answer": "D" },
-        { "answer": "E" },
-        { "answer": "R" }
+        {
+          "answer": "U"
+        },
+        {
+          "answer": "N"
+        },
+        {
+          "answer": "D"
+        },
+        {
+          "answer": "E"
+        },
+        {
+          "answer": "R"
+        }
       ],
       [
-        { "answer": "B" },
-        { "answer": "U" },
-        { "answer": "R" },
-        { "answer": "N" },
-        { "answer": "T" }
+        {
+          "answer": "B"
+        },
+        {
+          "answer": "U"
+        },
+        {
+          "answer": "R"
+        },
+        {
+          "answer": "N"
+        },
+        {
+          "answer": "T"
+        }
       ],
       [
-        { "block": true },
-        { "answer": "S" },
-        { "answer": "E" },
-        { "answer": "A" },
-        { "block": true }
+        {
+          "block": true
+        },
+        {
+          "answer": "S"
+        },
+        {
+          "answer": "E"
+        },
+        {
+          "answer": "A"
+        },
+        {
+          "block": true
+        }
       ]
     ]
   },
@@ -49,8 +99,8 @@
       "row": 0,
       "col": 1,
       "answer": "SPA",
-      "clue": "Recovery-day destination on a long road swing.",
-      "voice": "wry"
+      "clue": "Where players recover between playoff games.",
+      "voice": "factual"
     },
     {
       "id": "1D",
@@ -58,8 +108,8 @@
       "row": 0,
       "col": 1,
       "answer": "SINUS",
-      "clue": "___ infection; the kind of nagging thing that lands a starter as questionable.",
-      "voice": "factual"
+      "clue": "Cavity an arena doctor knows well, especially in May.",
+      "voice": "wry"
     },
     {
       "id": "2D",
@@ -67,8 +117,8 @@
       "row": 0,
       "col": 2,
       "answer": "PADRE",
-      "clue": "Father, in Spanish — across town from the WNBA's newest crowds.",
-      "voice": "factual"
+      "clue": "San Diego title for Kawhi's hometown fans, loosely.",
+      "voice": "wry"
     },
     {
       "id": "3D",
@@ -76,8 +126,8 @@
       "row": 0,
       "col": 3,
       "answer": "ARENA",
-      "clue": "Where last night's drama unfolded.",
-      "voice": "discoursey"
+      "clue": "Where playoff games are hosted.",
+      "voice": "factual"
     },
     {
       "id": "4A",
@@ -85,8 +135,8 @@
       "row": 1,
       "col": 0,
       "answer": "TIARA",
-      "clue": "Crown for a champion — or a finals MVP's victory-night flex.",
-      "voice": "wry"
+      "clue": "Crown for the trophy ceremony, not a ring though",
+      "voice": "discoursey"
     },
     {
       "id": "4D",
@@ -94,8 +144,8 @@
       "row": 1,
       "col": 0,
       "answer": "TUB",
-      "clue": "Cold ___: postgame recovery ritual.",
-      "voice": "factual"
+      "clue": "Where Wemby's technicals and trade rumors go to soak, lol",
+      "voice": "discoursey"
     },
     {
       "id": "5D",
@@ -103,8 +153,8 @@
       "row": 1,
       "col": 4,
       "answer": "ART",
-      "clue": "What a perfectly run set play becomes.",
-      "voice": "discoursey"
+      "clue": "What hangs in an arena lobby and never gets a DNP.",
+      "voice": "wry"
     },
     {
       "id": "6A",
@@ -112,7 +162,7 @@
       "row": 2,
       "col": 0,
       "answer": "UNDER",
-      "clue": "The bet you take when the pace screams defense.",
+      "clue": "Bettors took the ___ on that 228.5 total and got cooked in OT",
       "voice": "discoursey"
     },
     {
@@ -121,7 +171,7 @@
       "row": 3,
       "col": 0,
       "answer": "BURNT",
-      "clue": "How a defender feels after a nasty crossover.",
+      "clue": "Wemby's second-half composure, after that technical, perhaps.",
       "voice": "wry"
     },
     {
@@ -130,11 +180,11 @@
       "row": 4,
       "col": 1,
       "answer": "SEA",
-      "clue": "Seattle squad, in box-score shorthand.",
-      "voice": "factual"
+      "clue": "Where the SuperSonics left, never quite to return.",
+      "voice": "wry"
     }
   ],
-  "season_context_version": "hand-authored",
-  "generated_at": "2026-05-29T13:00:00Z",
-  "model": "hand-authored"
+  "season_context_version": "1f391562",
+  "generated_at": "2026-05-29T13:30:00Z",
+  "model": "us.anthropic.claude-sonnet-4-6"
 }
