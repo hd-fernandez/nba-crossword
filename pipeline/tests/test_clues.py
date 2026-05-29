@@ -26,11 +26,14 @@ from nba_mini.clues import (
     MAX_ATTEMPTS,
     SOFT_LENGTH_LIMIT,
     VOICE_TARGETS,
+    BEDROCK_DEFAULT_MODEL,
     AnthropicClueLLM,
+    BedrockClueLLM,
     ClueLLM,
     ClueLLMOutageError,
     GenerationContext,
     _assign_voices,
+    _extract_text,
     _normalize_clue,
     _validate_clue,
     generate_clues,
@@ -719,3 +722,77 @@ def test_anthropic_clue_llm_implements_protocol() -> None:
     """Lightweight structural check: AnthropicClueLLM has `complete(str) -> str`."""
     llm: ClueLLM = AnthropicClueLLM()
     assert callable(llm.complete)
+
+
+# ---------------------------------------------------------------------------
+# BedrockClueLLM surface + shared text extraction
+# ---------------------------------------------------------------------------
+
+
+def test_bedrock_clue_llm_has_correct_default_model() -> None:
+    """Default model should be the region-prefixed inference-profile ID."""
+    llm = BedrockClueLLM()
+    assert llm.model == BEDROCK_DEFAULT_MODEL
+    assert llm.model.startswith("us.anthropic.")
+
+
+def test_bedrock_clue_llm_implements_protocol() -> None:
+    llm: ClueLLM = BedrockClueLLM()
+    assert callable(llm.complete)
+
+
+class _FakeBlock:
+    def __init__(self, text: str) -> None:
+        self.text = text
+
+
+class _FakeMessage:
+    def __init__(self, *blocks: object) -> None:
+        self.content = list(blocks)
+
+
+def test_bedrock_complete_uses_injected_client() -> None:
+    """With a pre-built client, complete() never imports/constructs a real SDK."""
+    captured: dict[str, object] = {}
+
+    class _FakeClient:
+        def __init__(self) -> None:
+            self.messages = self
+
+        def create(self, **kwargs: object) -> _FakeMessage:
+            captured.update(kwargs)
+            return _FakeMessage(_FakeBlock("Crossover so nasty the floor filed a report."))
+
+    llm = BedrockClueLLM(model="us.anthropic.claude-sonnet-4-6", _client=_FakeClient())
+    out = llm.complete("write a clue")
+    assert out == "Crossover so nasty the floor filed a report."
+    assert captured["model"] == "us.anthropic.claude-sonnet-4-6"
+    assert captured["messages"] == [{"role": "user", "content": "write a clue"}]
+
+
+def test_bedrock_complete_wraps_sdk_errors_as_outage() -> None:
+    class _BoomClient:
+        def __init__(self) -> None:
+            self.messages = self
+
+        def create(self, **_kwargs: object) -> object:
+            raise RuntimeError("throttled")
+
+    llm = BedrockClueLLM(_client=_BoomClient())
+    with pytest.raises(ClueLLMOutageError, match="bedrock call failed"):
+        llm.complete("x")
+
+
+def test_extract_text_concatenates_blocks_and_strips() -> None:
+    msg = _FakeMessage(_FakeBlock("  one "), _FakeBlock("two"))
+    assert _extract_text(msg) == "one two"
+
+
+def test_extract_text_handles_dict_shaped_blocks() -> None:
+    msg = _FakeMessage({"text": "dict block"})
+    assert _extract_text(msg) == "dict block"
+
+
+def test_extract_text_empty_content_raises() -> None:
+    with pytest.raises(ClueLLMOutageError, match="empty content block list"):
+        _extract_text(_FakeMessage())

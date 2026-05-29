@@ -60,6 +60,16 @@ The plan calls for Sonnet at v0 for cost efficiency. We default to the
 current Sonnet release. Callers can override via `GenerationContext.model`.
 """
 
+BEDROCK_DEFAULT_MODEL = "us.anthropic.claude-sonnet-4-6"
+"""Default Bedrock inference-profile ID for clue generation.
+
+Bedrock requires a region-prefixed *inference profile* ID (e.g.
+``us.anthropic.claude-sonnet-4-6``), not the bare foundation-model ID
+(``anthropic.claude-sonnet-4-6``) — on-demand invocation of the bare ID is
+rejected. Auth is via the ambient AWS credential chain (SSO profile / env),
+so there is no separate API key.
+"""
+
 # Voice mix — wry / discoursey / factual = 50 / 30 / 20.
 VOICE_TARGETS: tuple[tuple[Voice, float], ...] = (
     ("wry", 0.50),
@@ -186,26 +196,81 @@ class AnthropicClueLLM:
         except Exception as exc:  # noqa: BLE001 — wrap anything raised by SDK
             raise ClueLLMOutageError(f"anthropic call failed: {exc}") from exc
 
-        # Anthropic SDK returns a Message with a `.content` list of content
-        # blocks. We expect a single text block.
+        return _extract_text(response)
+
+
+@dataclass
+class BedrockClueLLM:
+    """`ClueLLM` backed by Claude on Amazon Bedrock via `AnthropicBedrock`.
+
+    Identical request/response surface to `AnthropicClueLLM`; the only
+    differences are the client class and the auth model. Bedrock authenticates
+    with the ambient AWS credential chain (SSO profile, env vars, or instance
+    role) rather than an Anthropic API key — so there is nothing key-shaped to
+    pass; we just optionally pin the region.
+
+    `model` must be a Bedrock *inference-profile* ID (region-prefixed), e.g.
+    ``us.anthropic.claude-sonnet-4-6``. See `BEDROCK_DEFAULT_MODEL`.
+
+    Lazy-imports `anthropic` so test runs that inject a fake never need the SDK.
+    """
+
+    model: str = BEDROCK_DEFAULT_MODEL
+    max_tokens: int = 256
+    aws_region: str | None = None
+    _client: object | None = None
+
+    def complete(self, prompt: str) -> str:
+        client = self._client
+        if client is None:
+            try:
+                import anthropic  # noqa: PLC0415 — lazy on purpose
+            except ImportError as exc:
+                raise ClueLLMOutageError(
+                    "anthropic SDK is not installed; "
+                    "install `anthropic>=0.34` or inject a ClueLLM stub"
+                ) from exc
+            kwargs: dict[str, object] = {}
+            if self.aws_region is not None:
+                kwargs["aws_region"] = self.aws_region
+            client = anthropic.AnthropicBedrock(**kwargs)
+            self._client = client
+
         try:
-            content = response.content  # type: ignore[attr-defined]
-            text_parts: list[str] = []
-            for block in content:
-                # SDK returns objects with `.type` and `.text`; older shapes
-                # used dicts. Handle both.
-                t = getattr(block, "text", None)
-                if t is None and isinstance(block, dict):
-                    t = block.get("text")
-                if t:
-                    text_parts.append(str(t))
-            if not text_parts:
-                raise ClueLLMOutageError("anthropic returned an empty content block list")
-            return "".join(text_parts).strip()
-        except ClueLLMOutageError:
-            raise
-        except Exception as exc:  # noqa: BLE001
-            raise ClueLLMOutageError(f"anthropic returned unexpected shape: {exc}") from exc
+            response = client.messages.create(  # type: ignore[attr-defined]
+                model=self.model,
+                max_tokens=self.max_tokens,
+                messages=[{"role": "user", "content": prompt}],
+            )
+        except Exception as exc:  # noqa: BLE001 — wrap anything raised by SDK
+            raise ClueLLMOutageError(f"bedrock call failed: {exc}") from exc
+
+        return _extract_text(response)
+
+
+def _extract_text(response: object) -> str:
+    """Pull concatenated text out of an Anthropic `Message`.
+
+    Shared by the direct-API and Bedrock clients — both return the same
+    `Message` shape with a `.content` list of content blocks. We expect text
+    blocks; objects expose `.text`, older/dict shapes use `["text"]`.
+    """
+    try:
+        content = response.content  # type: ignore[attr-defined]
+        text_parts: list[str] = []
+        for block in content:
+            t = getattr(block, "text", None)
+            if t is None and isinstance(block, dict):
+                t = block.get("text")
+            if t:
+                text_parts.append(str(t))
+        if not text_parts:
+            raise ClueLLMOutageError("model returned an empty content block list")
+        return "".join(text_parts).strip()
+    except ClueLLMOutageError:
+        raise
+    except Exception as exc:  # noqa: BLE001
+        raise ClueLLMOutageError(f"model returned unexpected shape: {exc}") from exc
 
 
 # ---------------------------------------------------------------------------
@@ -545,6 +610,8 @@ def _fallback_clue(entry: Entry, grounding_fact: str | None) -> str:
 
 __all__ = [
     "AnthropicClueLLM",
+    "BedrockClueLLM",
+    "BEDROCK_DEFAULT_MODEL",
     "ClueGenerationError",
     "ClueLLM",
     "ClueLLMOutageError",

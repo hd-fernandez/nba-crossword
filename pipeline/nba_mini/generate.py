@@ -40,6 +40,7 @@ from __future__ import annotations
 import argparse
 import json
 import logging
+import os
 import re
 import sys
 from collections.abc import Callable
@@ -52,8 +53,10 @@ from typing import Protocol, Sequence
 from pydantic import ValidationError
 
 from nba_mini.clues import (
+    BEDROCK_DEFAULT_MODEL,
     DEFAULT_MODEL,
     AnthropicClueLLM,
+    BedrockClueLLM,
     ClueLLM,
     ClueLLMOutageError,
     GenerationContext,
@@ -159,21 +162,42 @@ class Deps:
     model: str = DEFAULT_MODEL
 
     @staticmethod
-    def production(*, model: str = DEFAULT_MODEL) -> "Deps":
-        """Build a ``Deps`` wired to the real Reddit / nba.com / Anthropic stacks.
+    def production(*, model: str | None = None, backend: str | None = None) -> "Deps":
+        """Build a ``Deps`` wired to the real Reddit / nba.com / LLM stacks.
 
-        The fetcher closures bind the per-date arguments inline so the
-        ``Deps`` callables all share the same ``(date) -> result`` shape.
+        ``backend`` selects the LLM transport: ``"anthropic"`` (direct API,
+        needs ``ANTHROPIC_API_KEY``) or ``"bedrock"`` (Claude on Amazon
+        Bedrock, authed via the ambient AWS credential chain). When ``None``,
+        falls back to the ``NBA_MINI_LLM_BACKEND`` env var, then ``"anthropic"``.
+
+        ``model`` defaults to the backend-appropriate default when ``None``:
+        the bare Sonnet name for the direct API, or the region-prefixed
+        inference-profile ID for Bedrock. The fetcher closures bind the
+        per-date arguments inline so the ``Deps`` callables all share the same
+        ``(date) -> result`` shape.
         """
-        anthropic_llm = AnthropicClueLLM(model=model)
+        backend = (backend or os.environ.get("NBA_MINI_LLM_BACKEND") or "anthropic").lower()
+        if backend == "bedrock":
+            resolved_model = model or BEDROCK_DEFAULT_MODEL
+            llm: ClueLLM = BedrockClueLLM(
+                model=resolved_model,
+                aws_region=os.environ.get("AWS_REGION"),
+            )
+        elif backend == "anthropic":
+            resolved_model = model or DEFAULT_MODEL
+            llm = AnthropicClueLLM(model=resolved_model)
+        else:
+            raise SystemExit(
+                f"unknown LLM backend {backend!r}; expected 'anthropic' or 'bedrock'"
+            )
         return Deps(
             season_context=load_season_context,
             fetch_reddit=lambda d: fetch_yesterday_discourse(d),
             fetch_games=lambda d: fetch_yesterday_games(d),
             load_wordlist=lambda: load_wordlist(),
-            llm=anthropic_llm,
+            llm=llm,
             clue_generator=generate_clues,
-            model=model,
+            model=resolved_model,
         )
 
 
@@ -593,10 +617,24 @@ def _parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         help="Overwrite an existing puzzle file at the target path.",
     )
     parser.add_argument(
+        "--backend",
+        type=str,
+        choices=("anthropic", "bedrock"),
+        default=None,
+        help=(
+            "LLM transport. 'anthropic' uses the direct API (ANTHROPIC_API_KEY); "
+            "'bedrock' uses Claude on Amazon Bedrock (ambient AWS credentials). "
+            "Defaults to $NBA_MINI_LLM_BACKEND, then 'anthropic'."
+        ),
+    )
+    parser.add_argument(
         "--model",
         type=str,
-        default=DEFAULT_MODEL,
-        help=f"Anthropic model name to record on the puzzle. Default: {DEFAULT_MODEL}",
+        default=None,
+        help=(
+            "Model ID to record on the puzzle. Defaults to the backend default "
+            f"({DEFAULT_MODEL} for anthropic, {BEDROCK_DEFAULT_MODEL} for bedrock)."
+        ),
     )
     parser.add_argument(
         "--verbose",
@@ -645,7 +683,7 @@ def main(argv: Sequence[str] | None = None, *, deps: Deps | None = None) -> int:
         return 0
 
     if deps is None:
-        deps = Deps.production(model=args.model)
+        deps = Deps.production(model=args.model, backend=args.backend)
 
     puzzle_num = next_puzzle_number(out_dir, iso)
     try:

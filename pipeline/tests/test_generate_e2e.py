@@ -26,6 +26,10 @@ from pathlib import Path
 import pytest
 
 from nba_mini.clues import (
+    BEDROCK_DEFAULT_MODEL,
+    DEFAULT_MODEL,
+    AnthropicClueLLM,
+    BedrockClueLLM,
     ClueLLMOutageError,
     GenerationContext,
     generate_clues,
@@ -751,6 +755,52 @@ def test_write_puzzle_json_round_trips(tmp_path: Path) -> None:
     assert re_parsed.date == puzzle.date
     assert re_parsed.model == puzzle.model
     assert len(re_parsed.entries) == len(puzzle.entries)
+
+
+# ---------------------------------------------------------------------------
+# Deps.production — LLM backend selection
+# ---------------------------------------------------------------------------
+
+
+def test_production_defaults_to_anthropic_backend(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("NBA_MINI_LLM_BACKEND", raising=False)
+    deps = Deps.production()
+    assert isinstance(deps.llm, AnthropicClueLLM)
+    assert deps.model == DEFAULT_MODEL
+
+
+def test_production_bedrock_backend_explicit_arg(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("NBA_MINI_LLM_BACKEND", raising=False)
+    monkeypatch.setenv("AWS_REGION", "us-east-1")
+    deps = Deps.production(backend="bedrock")
+    assert isinstance(deps.llm, BedrockClueLLM)
+    assert deps.model == BEDROCK_DEFAULT_MODEL
+    assert deps.llm.aws_region == "us-east-1"
+
+
+def test_production_backend_from_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("NBA_MINI_LLM_BACKEND", "bedrock")
+    deps = Deps.production()
+    assert isinstance(deps.llm, BedrockClueLLM)
+
+
+def test_production_explicit_arg_overrides_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("NBA_MINI_LLM_BACKEND", "bedrock")
+    deps = Deps.production(backend="anthropic")
+    assert isinstance(deps.llm, AnthropicClueLLM)
+
+
+def test_production_custom_model_respected(monkeypatch: pytest.MonkeyPatch) -> None:
+    deps = Deps.production(backend="bedrock", model="us.anthropic.claude-opus-4-7")
+    assert deps.model == "us.anthropic.claude-opus-4-7"
+    assert isinstance(deps.llm, BedrockClueLLM)
+    assert deps.llm.model == "us.anthropic.claude-opus-4-7"
+
+
+def test_production_unknown_backend_raises(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("NBA_MINI_LLM_BACKEND", raising=False)
+    with pytest.raises(SystemExit, match="unknown LLM backend"):
+        Deps.production(backend="gemini")
 
 
 # ---------------------------------------------------------------------------
