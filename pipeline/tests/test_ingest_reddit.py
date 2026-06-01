@@ -17,7 +17,10 @@ from nba_mini.ingest.reddit import (
     RedditNetworkError,
     RedditRateLimitError,
     RedditResponseError,
+    _split_flair_and_title,
     fetch_yesterday_discourse,
+    fetch_yesterday_discourse_rss,
+    reddit_rss_url,
 )
 
 FIXTURES = Path(__file__).resolve().parent / "fixtures"
@@ -348,3 +351,81 @@ def test_permalink_base_constant_used_for_comments_url() -> None:
     permalink = "/r/nba/comments/x/y/"
     expected = f"{PERMALINK_BASE}{permalink}.json"
     assert expected == "https://www.reddit.com/r/nba/comments/x/y/.json"
+
+
+# ---------------------------------------------------------------------------
+# RSS path (live production default — fixture-replay here, no network)
+# ---------------------------------------------------------------------------
+
+RSS_FIXTURE = (FIXTURES / "reddit_top.rss").read_text()
+
+
+def test_rss_happy_path_filters_to_yesterday() -> None:
+    digest = fetch_yesterday_discourse_rss(TODAY, rss_text=RSS_FIXTURE)
+    assert isinstance(digest, RedditDigest)
+    assert digest.date == YESTERDAY_ISO
+    titles = [p.title for p in digest.posts]
+    # Three yesterday posts; the two-days-ago entry and the link-less entry drop.
+    assert any("Lakers defeat the Celtics" in t for t in titles)
+    assert any("LeBron's 40th point" in t for t in titles)
+    assert any("Wemby" in t for t in titles)
+    assert not any("Old discussion thread" in t for t in titles)
+    assert not any("no link" in t for t in titles)
+
+
+def test_rss_lifts_flair_out_of_title() -> None:
+    digest = fetch_yesterday_discourse_rss(TODAY, rss_text=RSS_FIXTURE)
+    by_flair = {p.flair: p for p in digest.posts}
+    assert "Post Game Thread" in by_flair
+    pgt = by_flair["Post Game Thread"]
+    # Flair tag stripped from the title, not duplicated.
+    assert pgt.title == "The Lakers defeat the Celtics 118-114"
+    assert "[Post Game Thread]" not in pgt.title
+
+
+def test_rss_untagged_title_has_no_flair() -> None:
+    digest = fetch_yesterday_discourse_rss(TODAY, rss_text=RSS_FIXTURE)
+    wemby = next(p for p in digest.posts if "Wemby" in p.title)
+    assert wemby.flair is None
+    assert wemby.title == "Wemby pulls up in a thobe"
+
+
+def test_rss_neutral_defaults_for_unavailable_fields() -> None:
+    digest = fetch_yesterday_discourse_rss(TODAY, rss_text=RSS_FIXTURE)
+    for p in digest.posts:
+        assert p.top_comments == []
+        assert p.score == 0
+        assert p.comment_count == 0
+        assert p.permalink.startswith("/r/nba/comments/")
+
+
+def test_rss_permalink_is_path_only() -> None:
+    digest = fetch_yesterday_discourse_rss(TODAY, rss_text=RSS_FIXTURE)
+    for p in digest.posts:
+        assert not p.permalink.startswith("http")
+
+
+def test_rss_invalid_xml_raises_response_error() -> None:
+    with pytest.raises(RedditResponseError, match="not valid XML"):
+        fetch_yesterday_discourse_rss(TODAY, rss_text="<not-closed")
+
+
+def test_rss_empty_feed_yields_empty_digest() -> None:
+    empty = '<?xml version="1.0"?><feed xmlns="http://www.w3.org/2005/Atom"></feed>'
+    digest = fetch_yesterday_discourse_rss(TODAY, rss_text=empty)
+    assert digest.posts == []
+    assert digest.date == YESTERDAY_ISO
+
+
+def test_split_flair_and_title_variants() -> None:
+    assert _split_flair_and_title("[Highlight] Big dunk") == ("Highlight", "Big dunk")
+    assert _split_flair_and_title("No tag here") == (None, "No tag here")
+    # A title that is only a tag keeps the original as the title fallback.
+    flair, title = _split_flair_and_title("[OC]")
+    assert flair == "OC"
+    assert title  # non-empty
+
+
+def test_reddit_rss_url_defaults_to_nba() -> None:
+    assert reddit_rss_url() == "https://www.reddit.com/r/nba/top/.rss?t=day"
+    assert reddit_rss_url("wnba") == "https://www.reddit.com/r/wnba/top/.rss?t=day"

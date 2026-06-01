@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>top scoring links : nba</title>
+  <entry>
+    <title>[Post Game Thread] The Lakers defeat the Celtics 118-114</title>
+    <link href="https://www.reddit.com/r/nba/comments/aaa111/post_game_thread_lakers/" />
+    <updated>2026-05-14T20:30:00+00:00</updated>
+    <category term="r/nba" label="r/nba" />
+  </entry>
+  <entry>
+    <title>[Highlight] LeBron's 40th point of the night</title>
+    <link href="https://www.reddit.com/r/nba/comments/bbb222/highlight_lebron_40/" />
+    <updated>2026-05-14T23:45:00+00:00</updated>
+    <category term="r/nba" label="r/nba" />
+  </entry>
+  <entry>
+    <title>Wemby pulls up in a thobe</title>
+    <link href="https://www.reddit.com/r/nba/comments/ccc333/wemby_thobe/" />
+    <updated>2026-05-14T12:00:00+00:00</updated>
+    <category term="r/nba" label="r/nba" />
+  </entry>
+  <entry>
+    <title>[Discussion] Old discussion thread from two days ago</title>
+    <link href="https://www.reddit.com/r/nba/comments/ddd444/old_discussion/" />
+    <updated>2026-05-13T18:00:00+00:00</updated>
+    <category term="r/nba" label="r/nba" />
+  </entry>
+  <entry>
+    <title>Entry with no link should be skipped</title>
+    <updated>2026-05-14T10:00:00+00:00</updated>
+    <category term="r/nba" label="r/nba" />
+  </entry>
+</feed>

@@ -79,7 +79,7 @@ from nba_mini.ingest.nba_stats import (
 from nba_mini.ingest.reddit import (
     RedditDigest,
     RedditIngestError,
-    fetch_yesterday_discourse,
+    fetch_yesterday_discourse_rss,
 )
 from nba_mini.schema import GRID_SIZE, BlockCell, Entry, Grid, Puzzle
 from nba_mini.season_context import (
@@ -192,7 +192,7 @@ class Deps:
             )
         return Deps(
             season_context=load_season_context,
-            fetch_reddit=lambda d: fetch_yesterday_discourse(d),
+            fetch_reddit=lambda d: fetch_yesterday_discourse_rss(d),
             fetch_games=lambda d: fetch_yesterday_games(d),
             load_wordlist=lambda: load_wordlist(),
             llm=llm,

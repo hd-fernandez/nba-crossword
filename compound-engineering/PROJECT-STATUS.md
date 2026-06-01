@@ -35,15 +35,19 @@ Verified live: today's NBA + WNBA puzzles (2026-05-29) have real Bedrock-generat
 
 Now unblocked. Generate 3–5 real puzzles, Henry rates them, prompt files in `pipeline/nba_mini/prompts/` get edited, regenerate. The rate-and-rank loop — the work that makes the product *good*.
 
-### 3. Fix Reddit ingest (was hidden behind #1)
+### 3. Reddit ingest — RESOLVED via RSS (2026-06-01)
 
-`fetch_yesterday_discourse` 403s on the unauthenticated `r/nba/top.json` endpoint — Reddit now blocks anonymous JSON. Today's puzzles were generated with an empty reddit digest as a workaround. Needs a proper authenticated client (OAuth app + UA) or a different discourse source. Blocks the *full* daily pipeline and the GH Actions cron.
+The `.json` endpoint 403s (Reddit hard-blocks anonymous JSON; UA tweaks don't help). Fixed by switching the live default to the public Atom feed at `/r/<sub>/top/.rss`, which still serves 200 with no auth.
+- `fetch_yesterday_discourse_rss` in `pipeline/nba_mini/ingest/reddit.py` is the production path; `Deps.production` uses it.
+- Trade-off: RSS gives titles + flair + timestamps + permalinks but **no comment bodies or scores** (`top_comments=[]`, `score=0`). Titles carry the discourse signal the clue prompt needs.
+- The old JSON path is kept intact (fixture-tested) for a future OAuth-app upgrade if comments are wanted back.
+- **Verified:** full pipeline now runs end-to-end with real RSS discourse + real Bedrock clues, no stubs.
 
 ### 4. Production deploy
 
-Vercel hookup + GH Actions cron on a schedule. The cron also needs a Bedrock auth path that works headless (IAM role via OIDC — the runner has no SSO session) plus the Reddit fix (#3).
+Vercel hookup + GH Actions cron on a schedule. The cron still needs a Bedrock auth path that works headless (IAM role via OIDC — the runner has no SSO session). The Reddit half of the old cron failure is now fixed.
 
-### 4. (Optional) U7 — Bee generator algorithm tuning
+### 5. (Optional) U7 — Bee generator algorithm tuning
 
 WNBA Bees still cap at ~3–4 valid names per puzzle even after expanding the corpus to ~150 names. Diagnosed as algorithm bottleneck, not data depth: the greedy first-match board-pick walks away from richer boards. Broader board search + scoring would lift NBA from ~10 to 15+ and WNBA into the same range. See [solutions/2026-05-26-bee-v3.md](solutions/2026-05-26-bee-v3.md).
 
@@ -75,7 +79,8 @@ WNBA Bees still cap at ~3–4 valid names per puzzle even after expanding the co
 ## Blockers
 
 - **~~Snowflake auth~~ — RESOLVED.** Abandoned Snowflake-Cortex; using Amazon Bedrock via AWS SSO instead (see What's-left #1). No outstanding LLM-auth blocker for local runs.
-- **Reddit 403** (see What's-left #3) — blocks the full daily pipeline and the GH Actions cron, not local clue generation.
+- **~~Reddit 403~~ — RESOLVED.** Switched to the public RSS feed (see What's-left #3).
+- **Headless Bedrock auth** — the only thing standing between us and a working cron. The GH runner has no SSO session; needs an IAM role assumed via OIDC (or creds in secrets). See What's-left #4.
 
 ---
 

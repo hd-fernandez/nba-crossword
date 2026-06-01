@@ -25,6 +25,7 @@ logger = logging.getLogger(__name__)
 
 USER_AGENT = "nba-mini/0.1 by hd-fernandez"
 TOP_FEED_URL = "https://www.reddit.com/r/nba/top.json?t=day&limit=50"
+TOP_FEED_RSS_URL = "https://www.reddit.com/r/nba/top/.rss?t=day"
 PERMALINK_BASE = "https://www.reddit.com"
 DEFAULT_TOP_COMMENTS = 6
 INTER_REQUEST_SLEEP_S = 1.0
@@ -183,6 +184,205 @@ def fetch_yesterday_discourse(
         )
 
     return RedditDigest(date=yesterday_iso, posts=posts)
+
+
+# ---------------------------------------------------------------------------
+# RSS path (live default)
+# ---------------------------------------------------------------------------
+#
+# Reddit hard-blocks the anonymous `.json` endpoints with a 403 challenge page
+# (UA tweaks don't help; the proper fix is a registered OAuth app). The public
+# Atom feed at `/r/<sub>/top/.rss` still serves with 200 and no auth. It's a
+# leaner payload — post titles, flair, timestamps, permalinks, but NO comment
+# bodies or scores. Titles carry most of the discourse signal the clue prompt
+# needs, so we accept the trade and surface empty `top_comments` / `score=0`.
+
+
+def reddit_rss_url(subreddit: str = "nba") -> str:
+    """Top-of-day Atom feed URL for a subreddit."""
+    return f"https://www.reddit.com/r/{subreddit}/top/.rss?t=day"
+
+
+def fetch_yesterday_discourse_rss(
+    today: date,
+    *,
+    subreddit: str = "nba",
+    rss_text: str | None = None,
+    cache_dir: Path | None = None,
+) -> RedditDigest:
+    """Return yesterday's discourse digest from the subreddit's Atom feed.
+
+    This is the production default now that the `.json` endpoint 403s. The
+    digest contract is preserved; fields the feed can't provide are filled
+    with neutral defaults (``top_comments=[]``, ``score=0``,
+    ``comment_count=0``).
+
+    Args:
+        today: Pipeline run date (US/Eastern). Yesterday is ``today - 1`` in ET;
+            entries outside that ET-day window are filtered out.
+        subreddit: Which subreddit's feed to read (default ``nba``).
+        rss_text: Optional raw Atom XML. Tests pass a recorded string; when
+            omitted, a live `requests` GET is issued (with on-disk cache).
+        cache_dir: Where to cache the live response. Same resolution rules as
+            the JSON path. Ignored when ``rss_text`` is given.
+
+    Returns:
+        A validated ``RedditDigest``, newest-first as the feed orders them.
+
+    Raises:
+        RedditIngestError (or subclass) on transport / parse failure.
+    """
+    yesterday = today - timedelta(days=1)
+    yesterday_iso = yesterday.isoformat()
+
+    if rss_text is None:
+        resolved_cache = _resolve_cache_dir(cache_dir, yesterday_iso)
+        rss_text = _live_rss_fetch(reddit_rss_url(subreddit), resolved_cache)
+
+    start_utc, end_utc = _et_day_bounds_utc(yesterday)
+
+    posts: list[RedditPost] = []
+    for entry in _parse_rss_entries(rss_text):
+        created = entry["created_utc"]
+        # Some feed entries lack a parseable timestamp; keep them rather than
+        # silently dropping signal (the feed is already "top of day").
+        if created is not None and not (start_utc <= created < end_utc):
+            continue
+        posts.append(
+            RedditPost(
+                title=entry["title"] or "(untitled)",
+                flair=entry["flair"],
+                score=0,
+                comment_count=0,
+                top_comments=[],
+                permalink=entry["permalink"],
+            )
+        )
+
+    return RedditDigest(date=yesterday_iso, posts=posts)
+
+
+# Atom namespace used by Reddit's RSS feed.
+_ATOM_NS = "{http://www.w3.org/2005/Atom}"
+
+
+def _parse_rss_entries(rss_text: str) -> list[dict]:
+    """Parse Reddit Atom XML into a list of normalized entry dicts.
+
+    Each dict has: title (str), flair (str|None), permalink (str),
+    created_utc (float|None). Flair is parsed from a leading ``[Tag]`` in the
+    title when present (the feed's <category> is just the subreddit name).
+    """
+    import xml.etree.ElementTree as ET  # noqa: PLC0415 — stdlib, lazy for symmetry
+
+    try:
+        root = ET.fromstring(rss_text)
+    except ET.ParseError as e:
+        raise RedditResponseError(f"reddit RSS is not valid XML: {e}") from e
+
+    entries: list[dict] = []
+    for el in root.findall(f"{_ATOM_NS}entry"):
+        title_el = el.find(f"{_ATOM_NS}title")
+        link_el = el.find(f"{_ATOM_NS}link")
+        updated_el = el.find(f"{_ATOM_NS}updated")
+
+        raw_title = (title_el.text or "").strip() if title_el is not None else ""
+        permalink = ""
+        if link_el is not None:
+            href = link_el.get("href", "").strip()
+            # Store the path portion to match the JSON path's permalink shape.
+            permalink = href.replace(PERMALINK_BASE, "") if href else ""
+        if not permalink:
+            # An entry with no link is unusable as a clue anchor; skip it.
+            continue
+
+        flair, title = _split_flair_and_title(raw_title)
+        entries.append(
+            {
+                "title": title,
+                "flair": flair,
+                "permalink": permalink,
+                "created_utc": _parse_atom_timestamp(
+                    updated_el.text if updated_el is not None else None
+                ),
+            }
+        )
+    return entries
+
+
+def _split_flair_and_title(raw_title: str) -> tuple[str | None, str]:
+    """Split a leading ``[Tag]`` off a title into (flair, remaining_title).
+
+    Reddit's RSS bakes the flair into the title as a ``[Post Game Thread]``
+    prefix; the <category> element only carries the subreddit name. We lift
+    the tag into `flair` and strip it from the title so the prompt doesn't see
+    it twice. Titles without a tag return ``(None, title)`` unchanged.
+    """
+    s = raw_title.strip()
+    if s.startswith("[") and "]" in s:
+        close = s.index("]")
+        flair = s[1:close].strip() or None
+        title = s[close + 1 :].strip()
+        return flair, (title or s)
+    return None, s
+
+
+def _parse_atom_timestamp(text: str | None) -> float | None:
+    """Parse an Atom RFC-3339 timestamp into a UTC unix float, or None."""
+    if not text:
+        return None
+    s = text.strip()
+    # Python's fromisoformat handles the trailing 'Z' only from 3.11+; be safe.
+    if s.endswith("Z"):
+        s = s[:-1] + "+00:00"
+    try:
+        dt = datetime.fromisoformat(s)
+    except ValueError:
+        return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.timestamp()
+
+
+def _live_rss_fetch(url: str, cache_dir: Path) -> str:
+    """Fetch raw Atom XML with on-disk cache + 429 backoff. Returns text."""
+    import requests  # noqa: PLC0415 — lazy on purpose
+
+    cache_path = cache_dir / (_cache_filename(url).removesuffix(".json") + ".rss")
+    if cache_path.exists():
+        return cache_path.read_text()
+
+    headers = {"User-Agent": USER_AGENT}
+    last_exc: Exception | None = None
+    for attempt in range(RATE_LIMIT_RETRIES + 1):
+        try:
+            resp = requests.get(url, headers=headers, timeout=20)
+        except requests.exceptions.RequestException as e:
+            raise RedditNetworkError(f"network error fetching {url}: {e}") from e
+
+        if resp.status_code == 429:
+            if attempt < RATE_LIMIT_RETRIES:
+                sleep_for = RATE_LIMIT_BACKOFF_BASE_S * (2**attempt)
+                logger.warning(
+                    "reddit 429 on %s, sleeping %.1fs (attempt %d/%d)",
+                    url, sleep_for, attempt + 1, RATE_LIMIT_RETRIES,
+                )
+                time.sleep(sleep_for)
+                continue
+            last_exc = RedditRateLimitError(
+                f"rate limited on {url} after {RATE_LIMIT_RETRIES} retries"
+            )
+            break
+        if resp.status_code >= 500:
+            raise RedditNetworkError(f"reddit {resp.status_code} on {url}")
+        if resp.status_code >= 400:
+            raise RedditResponseError(f"reddit {resp.status_code} on {url}")
+
+        cache_path.write_text(resp.text)
+        return resp.text
+
+    assert last_exc is not None
+    raise last_exc
 
 
 # ---------------------------------------------------------------------------
