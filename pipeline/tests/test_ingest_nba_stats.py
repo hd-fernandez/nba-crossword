@@ -19,10 +19,13 @@ import pytest
 
 from nba_mini.ingest.nba_stats import (
     GamesDigest,
+    LEAGUE_IDS,
+    NbaApiStatsClient,
     NoGamesSignal,
     NBAStatsFetchError,
     NBAStatsParseError,
     RetryConfig,
+    fetch_most_recent_games,
     fetch_yesterday_games,
 )
 
@@ -513,5 +516,115 @@ def test_cache_dir_env_var_is_respected(tmp_path: Path, monkeypatch) -> None:
     )
     fetch_yesterday_games(date(2026, 5, 14), client=client, sleep=_no_sleep)
     cache_root = tmp_path / "envdir"
-    assert (cache_root / "scoreboard-2026-05-14.json").exists()
+    # Scoreboard cache is league-namespaced so NBA/WNBA slates for the same
+    # date don't collide.
+    assert (cache_root / "scoreboard-nba-2026-05-14.json").exists()
     assert (cache_root / "boxscore-0042500301.json").exists()
+
+
+# ---------------------------------------------------------------------------
+# League selection
+# ---------------------------------------------------------------------------
+
+
+def test_league_ids_map_nba_and_wnba() -> None:
+    assert LEAGUE_IDS["nba"] == "00"
+    assert LEAGUE_IDS["wnba"] == "10"
+
+
+def test_default_client_binds_league_id() -> None:
+    assert NbaApiStatsClient("nba").league_id == "00"
+    assert NbaApiStatsClient("wnba").league_id == "10"
+    # Default is NBA for back-compat.
+    assert NbaApiStatsClient().league_id == "00"
+
+
+def test_scoreboard_cache_is_namespaced_by_league(tmp_path: Path) -> None:
+    """NBA and WNBA slates for the same date must not collide in the cache."""
+    nba_client = StubStatsClient(
+        scoreboard=_load_scoreboard_fixture(), boxscores=_default_boxscores()
+    )
+    wnba_client = StubStatsClient(scoreboard=_empty_scoreboard(), boxscores={})
+
+    nba = fetch_yesterday_games(
+        date(2026, 5, 14), league="nba", client=nba_client,
+        cache_dir=tmp_path, sleep=_no_sleep,
+    )
+    wnba = fetch_yesterday_games(
+        date(2026, 5, 14), league="wnba", client=wnba_client,
+        cache_dir=tmp_path, sleep=_no_sleep,
+    )
+    # Distinct files, distinct results — no cross-contamination.
+    assert (tmp_path / "scoreboard-nba-2026-05-14.json").exists()
+    assert (tmp_path / "scoreboard-wnba-2026-05-14.json").exists()
+    assert isinstance(nba, GamesDigest)
+    assert isinstance(wnba, NoGamesSignal)
+
+
+# ---------------------------------------------------------------------------
+# Most-recent-games search-back
+# ---------------------------------------------------------------------------
+
+
+class DateAwareStubClient:
+    """Stub that has games only on specific dates — for search-back tests."""
+
+    def __init__(self, *, game_dates: set[str], boxscores: dict[str, Any]) -> None:
+        self.game_dates = game_dates
+        self.boxscores = boxscores
+        self.scoreboard_dates: list[str] = []
+
+    def fetch_scoreboard(self, game_date: date) -> dict[str, Any]:
+        iso = game_date.isoformat()
+        self.scoreboard_dates.append(iso)
+        if iso in self.game_dates:
+            return copy.deepcopy(_load_scoreboard_fixture())
+        return copy.deepcopy(_empty_scoreboard())
+
+    def fetch_boxscore(self, game_id: str) -> dict[str, Any]:
+        return copy.deepcopy(self.boxscores[game_id])
+
+
+def test_most_recent_returns_today_when_today_has_games(tmp_path: Path) -> None:
+    client = DateAwareStubClient(
+        game_dates={"2026-06-01"}, boxscores=_default_boxscores()
+    )
+    result = fetch_most_recent_games(
+        date(2026, 6, 1), client=client, cache_dir=tmp_path, sleep=_no_sleep
+    )
+    assert isinstance(result, GamesDigest)
+    assert result.date == "2026-06-01"
+    # Only probed the start date.
+    assert client.scoreboard_dates == ["2026-06-01"]
+
+
+def test_most_recent_walks_back_to_prior_game_day(tmp_path: Path) -> None:
+    """Monday with no games walks back to Saturday's slate."""
+    client = DateAwareStubClient(
+        game_dates={"2026-05-30"}, boxscores=_default_boxscores()
+    )
+    result = fetch_most_recent_games(
+        date(2026, 6, 1), client=client, cache_dir=tmp_path, sleep=_no_sleep
+    )
+    assert isinstance(result, GamesDigest)
+    # Slate is dated to the day games were actually played.
+    assert result.date == "2026-05-30"
+    # Probed Mon (6/1), Sun (5/31), then found Sat (5/30).
+    assert client.scoreboard_dates == ["2026-06-01", "2026-05-31", "2026-05-30"]
+
+
+def test_most_recent_returns_no_games_when_window_is_empty(tmp_path: Path) -> None:
+    client = DateAwareStubClient(game_dates=set(), boxscores={})
+    result = fetch_most_recent_games(
+        date(2026, 7, 4),
+        client=client,
+        cache_dir=tmp_path,
+        retry=RetryConfig(),
+        sleep=_no_sleep,
+        max_lookback=3,
+    )
+    assert isinstance(result, NoGamesSignal)
+    # Dated to the start date, not the last probed day.
+    assert result.date == "2026-07-04"
+    # Probed start + 3 lookback days = 4 dates.
+    assert len(client.scoreboard_dates) == 4

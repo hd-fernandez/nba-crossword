@@ -477,6 +477,22 @@ def test_run_pipeline_happy_path_returns_valid_puzzle() -> None:
     assert parsed.date == puzzle.date
 
 
+def test_run_pipeline_records_slate_date_from_games_digest() -> None:
+    """Publish date is the target; slate_date comes from the games digest,
+    which can be an earlier day (look-back)."""
+    publish = date_cls(2026, 6, 1)  # Monday
+    # Games digest dated to Saturday's slate — as the look-back resolver
+    # would return.
+    saturday_games = _example_games_digest(date_cls(2026, 5, 30))
+    deps = _make_deps(target_date=publish, games=saturday_games)
+
+    puzzle = run_pipeline(publish, deps=deps)
+
+    assert puzzle is not None
+    assert puzzle.date == "2026-06-01"  # published today
+    assert puzzle.slate_date == "2026-05-30"  # games from Saturday
+
+
 def test_run_pipeline_no_games_returns_none() -> None:
     target = date_cls(2026, 7, 4)  # mid-summer, no games
     deps = _make_deps(
@@ -548,7 +564,8 @@ def test_main_writes_puzzle_for_game_day(tmp_path: Path) -> None:
     )
     assert rc == 0
 
-    written = puzzle_path_for("2026-05-16", tmp_path)
+    # The league subdir is always appended under --out.
+    written = puzzle_path_for("2026-05-16", tmp_path / "nba")
     assert written.exists()
     payload = json.loads(written.read_text())
     assert payload["date"] == "2026-05-16"
@@ -568,7 +585,7 @@ def test_main_no_games_day_writes_no_file(tmp_path: Path) -> None:
         deps=deps,
     )
     assert rc == 0
-    written = puzzle_path_for("2026-07-04", tmp_path)
+    written = puzzle_path_for("2026-07-04", tmp_path / "nba")
     assert not written.exists()
 
 
@@ -581,7 +598,7 @@ def test_main_idempotent_when_file_exists(tmp_path: Path) -> None:
         deps=deps,
     )
     assert rc1 == 0
-    written = puzzle_path_for("2026-05-16", tmp_path)
+    written = puzzle_path_for("2026-05-16", tmp_path / "nba")
     assert written.exists()
     first_mtime = written.stat().st_mtime_ns
     first_contents = written.read_text()
@@ -625,7 +642,7 @@ def test_main_idempotent_when_file_exists(tmp_path: Path) -> None:
 def test_main_force_overwrites_existing_file(tmp_path: Path) -> None:
     target = date_cls(2026, 5, 16)
     out = tmp_path
-    written = puzzle_path_for("2026-05-16", out)
+    written = puzzle_path_for("2026-05-16", out / "nba")
     written.parent.mkdir(parents=True, exist_ok=True)
     # Pre-existing dummy file so we can confirm overwrite happened.
     written.write_text('{"sentinel": true}\n', encoding="utf-8")
@@ -828,7 +845,7 @@ def test_live_e2e_against_real_apis(tmp_path: Path) -> None:
     )
     assert rc == 0
 
-    written = puzzle_path_for(target.isoformat(), tmp_path)
+    written = puzzle_path_for(target.isoformat(), tmp_path / "nba")
     assert written.exists()
     payload = json.loads(written.read_text())
     re_parsed = Puzzle.model_validate(payload)

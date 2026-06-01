@@ -502,6 +502,7 @@ function PuzzleView({
         <SplashOverlay
           puzzleNumber={puzzle.puzzle_number}
           puzzleDate={puzzle.date}
+          slateDate={puzzle.slate_date}
           league={puzzle.league}
           accent={accent}
           accentShadow={accentShadow}
@@ -593,6 +594,7 @@ const revealButtonStyle: React.CSSProperties = {
 function SplashOverlay({
   puzzleNumber,
   puzzleDate,
+  slateDate,
   league,
   accent,
   accentShadow,
@@ -600,21 +602,14 @@ function SplashOverlay({
 }: {
   puzzleNumber: number;
   puzzleDate: string;
+  slateDate?: string;
   league: League;
   accent: string;
   accentShadow: string;
   onStart: () => void;
 }) {
   const cfg = configFor(league);
-  const pretty = useMemo(() => {
-    const [y, m, d] = puzzleDate.split("-").map(Number);
-    const dt = new Date(Date.UTC(y, m - 1, d));
-    return new Intl.DateTimeFormat("en-US", {
-      month: "long",
-      day: "numeric",
-      timeZone: "UTC",
-    }).format(dt);
-  }, [puzzleDate]);
+  const pretty = useMemo(() => prettyDate(puzzleDate), [puzzleDate]);
 
   return (
     <div
@@ -671,7 +666,9 @@ function SplashOverlay({
             letterSpacing: "0.01em",
           }}
         >
-          A daily 5×5 from yesterday&rsquo;s slate.
+          {slateDate
+            ? `A daily 5×5 from ${prettyDate(slateDate)}'s games.`
+            : "A daily 5×5 from yesterday’s slate."}
         </p>
         <button
           type="button"

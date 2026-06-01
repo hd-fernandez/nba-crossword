@@ -59,7 +59,17 @@ class Entry(BaseModel):
 
 class Puzzle(BaseModel):
     model_config = ConfigDict(extra="forbid")
+    # Publish date: the day this puzzle is served as "today's" puzzle. The
+    # frontend fetches by this date.
     date: str = Field(pattern=r"^\d{4}-\d{2}-\d{2}$")
+    # Slate date: the day the underlying games were actually played. Usually
+    # `date - 1`, but can be older when a league didn't play yesterday (the
+    # pipeline looks back to the most recent game day per league). Optional for
+    # back-compat with puzzles authored before this field existed; when unset
+    # the frontend falls back to its old "yesterday's slate" copy.
+    slate_date: str | None = Field(
+        default=None, pattern=r"^\d{4}-\d{2}-\d{2}$"
+    )
     # Which league this puzzle belongs to. The frontend uses this to set
     # title text, color palette, and which storage key to read for streaks.
     # The pipeline uses it to pick the right season-context, subreddit, and

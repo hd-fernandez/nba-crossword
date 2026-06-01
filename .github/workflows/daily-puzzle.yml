@@ -73,7 +73,7 @@ jobs:
         working-directory: pipeline
         run: uv sync --extra dev
 
-      - name: Generate today's puzzle
+      - name: Generate today's puzzles (both leagues)
         working-directory: pipeline
         env:
           # Drive the pipeline onto Bedrock. AWS_REGION and the OIDC-assumed
@@ -88,14 +88,22 @@ jobs:
           if [ "${{ inputs.force }}" = "true" ]; then
             ARGS+=(--force)
           fi
-          # cwd is pipeline/, so ../puzzles points at the repo-root puzzles/.
-          uv run python -m nba_mini.generate --backend bedrock --out ../puzzles "${ARGS[@]}"
+          # Generate for both leagues. Each looks back to its own most recent
+          # slate, so an off-day for one league doesn't block the other. The
+          # CLI appends the league subdir under --out, so these write to
+          # ../puzzles/nba/ and ../puzzles/wnba/ respectively.
+          for league in nba wnba; do
+            echo "::group::generate ${league}"
+            uv run python -m nba_mini.generate \
+              --league "${league}" --backend bedrock --out ../puzzles "${ARGS[@]}"
+            echo "::endgroup::"
+          done
 
-      - name: Commit and push if a new puzzle was written
+      - name: Commit and push if new puzzles were written
         run: |
           set -euo pipefail
           if [ -z "$(git status --porcelain puzzles/)" ]; then
-            echo "No puzzle changes in puzzles/ — likely a no-games day or an idempotent re-run. Nothing to commit."
+            echo "No puzzle changes in puzzles/ — likely a no-games day for both leagues, or an idempotent re-run. Nothing to commit."
             exit 0
           fi
 
@@ -103,15 +111,15 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
           git add puzzles/
-          # Recover the date from the staged JSON filename rather than trusting
-          # alphabetical ordering — this works correctly for both cron runs and
-          # workflow_dispatch backfills of older dates.
-          PUZZLE_FILE="$(git diff --name-only --cached -- 'puzzles/*.json' | head -n 1)"
+          # Recover the date from a staged JSON filename (puzzles live under
+          # puzzles/<league>/<date>.json). Works for cron runs and for
+          # workflow_dispatch backfills of older dates alike.
+          PUZZLE_FILE="$(git diff --name-only --cached -- 'puzzles/**/*.json' | head -n 1)"
           if [ -z "$PUZZLE_FILE" ]; then
             echo "puzzles/ changed but no JSON file was staged — refusing to commit."
             exit 1
           fi
           DATE="$(basename "$PUZZLE_FILE" .json)"
 
-          git commit -m "chore(puzzles): add ${DATE}"
+          git commit -m "chore(puzzles): add ${DATE} (nba + wnba)"
           git push

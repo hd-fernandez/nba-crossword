@@ -40,6 +40,7 @@ import os
 import time
 from dataclasses import dataclass
 from datetime import date as date_cls
+from datetime import timedelta
 from pathlib import Path
 from typing import Annotated, Any, Literal, Protocol
 
@@ -135,6 +136,12 @@ class StatsClient(Protocol):
     def fetch_boxscore(self, game_id: str) -> dict[str, Any]: ...
 
 
+# nba.com league IDs. The same stats host serves both leagues; only the
+# league_id query param differs. "00" = NBA, "10" = WNBA.
+League = Literal["nba", "wnba"]
+LEAGUE_IDS: dict[League, str] = {"nba": "00", "wnba": "10"}
+
+
 class NbaApiStatsClient:
     """Default ``StatsClient`` backed by the ``nba_api`` package.
 
@@ -142,14 +149,23 @@ class NbaApiStatsClient:
     environments without the runtime dep. ``nba_api`` has a slightly quirky
     surface — each endpoint is a class that does the HTTP call in its
     constructor, then exposes ``.get_dict()`` for the parsed response.
+
+    ``league`` selects which league's slate to fetch. It's bound at
+    construction (not per call) so the ``StatsClient`` protocol stays a clean
+    ``(game_date) -> payload`` shape and existing test stubs keep working
+    unchanged.
     """
+
+    def __init__(self, league: League = "nba") -> None:
+        self.league = league
+        self.league_id = LEAGUE_IDS[league]
 
     def fetch_scoreboard(self, game_date: date_cls) -> dict[str, Any]:
         from nba_api.stats.endpoints import scoreboardv2  # type: ignore[import-not-found]
 
         endpoint = scoreboardv2.ScoreboardV2(
             game_date=game_date.isoformat(),
-            league_id="00",
+            league_id=self.league_id,
             day_offset=0,
         )
         return endpoint.get_dict()
@@ -487,6 +503,7 @@ def _detect_notable_events(
 def fetch_yesterday_games(
     date: date_cls,
     *,
+    league: League = "nba",
     client: StatsClient | None = None,
     cache_dir: Path | None = None,
     retry: RetryConfig | None = None,
@@ -499,9 +516,14 @@ def fetch_yesterday_games(
     date:
         Calendar date to fetch (caller resolves "yesterday" in US/Eastern;
         nba.com's day boundary lines up with ET).
+    league:
+        Which league's slate to fetch — ``"nba"`` or ``"wnba"``. Selects the
+        default client's ``league_id``. Ignored when ``client`` is given (the
+        caller's stub already knows its league). Also namespaces the on-disk
+        cache so the two leagues' scoreboards never collide.
     client:
         Override for the underlying nba.com fetcher. Tests pass a stub here.
-        Defaults to ``NbaApiStatsClient()``.
+        Defaults to ``NbaApiStatsClient(league)``.
     cache_dir:
         Override for the on-disk cache root. Defaults to
         ``$NBA_MINI_CACHE_DIR`` or ``~/.cache/nba-mini/nba_stats/``.
@@ -523,12 +545,15 @@ def fetch_yesterday_games(
         nba.com returned a response we don't know how to parse (likely an API
         change). We raise rather than silently producing wrong data.
     """
-    client = client or NbaApiStatsClient()
+    client = client or NbaApiStatsClient(league)
     cache_dir = cache_dir or _cache_dir()
     retry = retry or RetryConfig()
 
     iso = date.isoformat()
-    sb_cache_path = cache_dir / f"scoreboard-{iso}.json"
+    # Namespace the scoreboard cache by league so NBA and WNBA slates for the
+    # same date don't overwrite each other. (Boxscore cache keys are by game
+    # id, which is already globally unique across leagues.)
+    sb_cache_path = cache_dir / f"scoreboard-{league}-{iso}.json"
     sb_payload = _read_cache(sb_cache_path)
     if sb_payload is None:
         sb_payload = _with_retry(
@@ -593,6 +618,67 @@ def fetch_yesterday_games(
     return GamesDigest(date=iso, games=summaries)
 
 
+# How many days to walk back looking for the most recent slate before giving
+# up. A league's longest in-season gap (All-Star break, Finals off-days) is a
+# handful of days; 10 is comfortably beyond that without being unbounded.
+MAX_LOOKBACK_DAYS = 10
+
+
+def fetch_most_recent_games(
+    start: date_cls,
+    *,
+    league: League = "nba",
+    max_lookback: int = MAX_LOOKBACK_DAYS,
+    client: StatsClient | None = None,
+    cache_dir: Path | None = None,
+    retry: RetryConfig | None = None,
+    sleep=time.sleep,
+) -> GamesDigest | NoGamesSignal:
+    """Find the most recent day at or before ``start`` that had games.
+
+    Walks back day-by-day from ``start`` (inclusive), returning the first
+    ``GamesDigest`` it finds. This is what lets a puzzle published on Monday
+    look back to Saturday's NBA slate or Sunday's WNBA slate — whichever was
+    that league's most recent game day — instead of assuming "yesterday."
+
+    Returns ``NoGamesSignal`` (dated to ``start``) if no games are found in the
+    whole ``max_lookback`` window — e.g. a true off-season, or a league on a
+    long break. The caller treats that exactly like the old no-games day.
+
+    The single underlying client is reused across all probed days so the
+    bound ``league_id`` and the on-disk cache are shared; each probed date
+    still gets its own league-namespaced scoreboard cache entry.
+    """
+    probe_client = client or NbaApiStatsClient(league)
+    for delta in range(max_lookback + 1):
+        day = start - timedelta(days=delta)
+        result = fetch_yesterday_games(
+            day,
+            league=league,
+            client=probe_client,
+            cache_dir=cache_dir,
+            retry=retry,
+            sleep=sleep,
+        )
+        if isinstance(result, GamesDigest):
+            if delta:
+                logger.info(
+                    "%s: most recent games were %d day(s) before %s, on %s",
+                    league,
+                    delta,
+                    start.isoformat(),
+                    day.isoformat(),
+                )
+            return result
+    logger.info(
+        "%s: no games in the %d days up to %s",
+        league,
+        max_lookback,
+        start.isoformat(),
+    )
+    return NoGamesSignal(date=start.isoformat())
+
+
 def _format_score(home: str, home_score: int, away: str, away_score: int, period: int) -> str:
     if home_score >= away_score:
         head = f"{home} {home_score}, {away} {away_score}"
@@ -607,6 +693,8 @@ def _format_score(home: str, home_score: int, away: str, away_score: int, period
 __all__ = [
     "GamesDigest",
     "GameSummary",
+    "League",
+    "LEAGUE_IDS",
     "NbaApiStatsClient",
     "NBAStatsError",
     "NBAStatsFetchError",
@@ -615,5 +703,6 @@ __all__ = [
     "RetryConfig",
     "StatsClient",
     "TopPerformer",
+    "fetch_most_recent_games",
     "fetch_yesterday_games",
 ]

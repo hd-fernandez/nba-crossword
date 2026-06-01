@@ -54,6 +54,13 @@ export type Entry = z.infer<typeof EntrySchema>;
 const RawPuzzleSchema = z
   .object({
     date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    // The day the underlying games were played. Usually date - 1, but can be
+    // older when the league didn't play yesterday. Optional for back-compat
+    // with puzzles authored before this field existed.
+    slate_date: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/)
+      .optional(),
     // Which league this puzzle belongs to. Defaults to "nba" for back-compat
     // with v0 fixtures written before the multi-league split. New puzzles
     // always set it explicitly.

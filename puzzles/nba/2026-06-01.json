@@ -1,0 +1,191 @@
+{
+  "date": "2026-06-01",
+  "slate_date": "2026-05-30",
+  "league": "nba",
+  "puzzle_number": 4,
+  "grid": {
+    "size": 5,
+    "cells": [
+      [
+        {
+          "block": true
+        },
+        {
+          "answer": "I"
+        },
+        {
+          "answer": "C"
+        },
+        {
+          "answer": "E"
+        },
+        {
+          "block": true
+        }
+      ],
+      [
+        {
+          "answer": "S"
+        },
+        {
+          "answer": "T"
+        },
+        {
+          "answer": "R"
+        },
+        {
+          "answer": "A"
+        },
+        {
+          "answer": "W"
+        }
+      ],
+      [
+        {
+          "answer": "P"
+        },
+        {
+          "answer": "E"
+        },
+        {
+          "answer": "E"
+        },
+        {
+          "answer": "R"
+        },
+        {
+          "answer": "S"
+        }
+      ],
+      [
+        {
+          "answer": "A"
+        },
+        {
+          "answer": "M"
+        },
+        {
+          "answer": "P"
+        },
+        {
+          "answer": "L"
+        },
+        {
+          "answer": "Y"
+        }
+      ],
+      [
+        {
+          "block": true
+        },
+        {
+          "answer": "S"
+        },
+        {
+          "answer": "T"
+        },
+        {
+          "answer": "Y"
+        },
+        {
+          "block": true
+        }
+      ]
+    ]
+  },
+  "entries": [
+    {
+      "id": "1A",
+      "direction": "across",
+      "row": 0,
+      "col": 1,
+      "answer": "ICE",
+      "clue": "What a clutch FT shooter has in his veins, allegedly",
+      "voice": "discoursey"
+    },
+    {
+      "id": "1D",
+      "direction": "down",
+      "row": 0,
+      "col": 1,
+      "answer": "ITEMS",
+      "clue": "Postgame locker cleanout contents, per the beat reporter's list.",
+      "voice": "wry"
+    },
+    {
+      "id": "2D",
+      "direction": "down",
+      "row": 0,
+      "col": 2,
+      "answer": "CREPT",
+      "clue": "Wemby's foul trouble kind of ___ up on him before the ejection.",
+      "voice": "discoursey"
+    },
+    {
+      "id": "3D",
+      "direction": "down",
+      "row": 0,
+      "col": 3,
+      "answer": "EARLY",
+      "clue": "Like Wemby's exit from last week's game.",
+      "voice": "wry"
+    },
+    {
+      "id": "4A",
+      "direction": "across",
+      "row": 1,
+      "col": 0,
+      "answer": "STRAW",
+      "clue": "Last thing between a player and his sports drink.",
+      "voice": "wry"
+    },
+    {
+      "id": "4D",
+      "direction": "down",
+      "row": 1,
+      "col": 0,
+      "answer": "SPA",
+      "clue": "Where guys are getting their bodies right on a long playoff road trip, basically",
+      "voice": "discoursey"
+    },
+    {
+      "id": "5D",
+      "direction": "down",
+      "row": 1,
+      "col": 4,
+      "answer": "WSY",
+      "clue": "Wembanyama's jersey abbreviation, minus the calm.",
+      "voice": "wry"
+    },
+    {
+      "id": "6A",
+      "direction": "across",
+      "row": 2,
+      "col": 0,
+      "answer": "PEERS",
+      "clue": "Players at the same level in the league hierarchy.",
+      "voice": "factual"
+    },
+    {
+      "id": "7A",
+      "direction": "across",
+      "row": 3,
+      "col": 0,
+      "answer": "AMPLY",
+      "clue": "More than enough, in box-score terms.",
+      "voice": "factual"
+    },
+    {
+      "id": "8A",
+      "direction": "across",
+      "row": 4,
+      "col": 1,
+      "answer": "STY",
+      "clue": "Where a hog lives, or how the locker room looked after a seven-game series.",
+      "voice": "wry"
+    }
+  ],
+  "season_context_version": "1f391562",
+  "generated_at": "2026-06-01T16:04:21.964390Z",
+  "model": "us.anthropic.claude-sonnet-4-6"
+}

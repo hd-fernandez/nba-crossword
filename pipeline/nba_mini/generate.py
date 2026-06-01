@@ -72,9 +72,10 @@ from nba_mini.grid import (
 )
 from nba_mini.ingest.nba_stats import (
     GamesDigest,
+    League,
     NBAStatsError,
     NoGamesSignal,
-    fetch_yesterday_games,
+    fetch_most_recent_games,
 )
 from nba_mini.ingest.reddit import (
     RedditDigest,
@@ -123,6 +124,9 @@ RedditFetcher = Callable[[date_cls], RedditDigest]
 NBAStatsFetcher = Callable[[date_cls], "GamesDigest | NoGamesSignal"]
 WordlistLoader = Callable[[], list[str]]
 
+# Per-league subreddit for discourse ingest. Both feeds are public RSS.
+_SUBREDDITS: dict[League, str] = {"nba": "nba", "wnba": "wnba"}
+
 
 class ClueGenerator(Protocol):
     """Structural type for ``generate_clues`` and any test stand-in.
@@ -162,13 +166,24 @@ class Deps:
     model: str = DEFAULT_MODEL
 
     @staticmethod
-    def production(*, model: str | None = None, backend: str | None = None) -> "Deps":
+    def production(
+        *,
+        model: str | None = None,
+        backend: str | None = None,
+        league: League = "nba",
+    ) -> "Deps":
         """Build a ``Deps`` wired to the real Reddit / nba.com / LLM stacks.
 
         ``backend`` selects the LLM transport: ``"anthropic"`` (direct API,
         needs ``ANTHROPIC_API_KEY``) or ``"bedrock"`` (Claude on Amazon
         Bedrock, authed via the ambient AWS credential chain). When ``None``,
         falls back to the ``NBA_MINI_LLM_BACKEND`` env var, then ``"anthropic"``.
+
+        ``league`` wires every league-specific seam to the same league: the
+        season context, the subreddit feed, and the box-score endpoint's
+        ``league_id``. ``fetch_games`` resolves the *most recent* slate at or
+        before the date it's given, so the orchestrator gets the right
+        look-back behavior for free.
 
         ``model`` defaults to the backend-appropriate default when ``None``:
         the bare Sonnet name for the direct API, or the region-prefixed
@@ -190,10 +205,11 @@ class Deps:
             raise SystemExit(
                 f"unknown LLM backend {backend!r}; expected 'anthropic' or 'bedrock'"
             )
+        subreddit = _SUBREDDITS[league]
         return Deps(
-            season_context=load_season_context,
-            fetch_reddit=lambda d: fetch_yesterday_discourse_rss(d),
-            fetch_games=lambda d: fetch_yesterday_games(d),
+            season_context=lambda: load_season_context(league=league),
+            fetch_reddit=lambda d: fetch_yesterday_discourse_rss(d, subreddit=subreddit),
+            fetch_games=lambda d: fetch_most_recent_games(d, league=league),
             load_wordlist=lambda: load_wordlist(),
             llm=llm,
             clue_generator=generate_clues,
@@ -213,10 +229,19 @@ def run_pipeline(
     puzzle_number: int = 1,
     league: str = "nba",
 ) -> Puzzle | None:
-    """Run the full pipeline for ``target_date``. Returns the ``Puzzle`` or None.
+    """Run the full pipeline, publishing a puzzle dated ``target_date``.
 
-    Returns ``None`` when stats reports no games for the date — the caller
-    treats this as the no-puzzle-today signal (R6 / AE3) and writes nothing.
+    ``target_date`` is the *publish* date — the day this puzzle is served as
+    "today's." The games it's built from are the league's **most recent
+    slate at or before** ``target_date``, which ``deps.fetch_games`` resolves
+    (it may walk back several days). The resulting ``GamesDigest.date`` is the
+    *slate* date and is recorded on the puzzle as ``slate_date``; in the common
+    case it's ``target_date - 1``, but on a Monday after a Saturday NBA slate
+    it'll be the Saturday.
+
+    Returns ``None`` when the league has no games anywhere in the lookback
+    window — the caller treats this as the no-puzzle-today signal (R6 / AE3)
+    and writes nothing.
 
     The ``league`` arg threads through to the ``Puzzle`` it constructs;
     season-context loading, ingest fetchers, and prompt assembly are
@@ -227,23 +252,29 @@ def run_pipeline(
     The orchestrator does not catch any of them — ``main`` does, with a
     typed-error → exit-code mapping.
     """
-    iso = target_date.isoformat()
-    logger.info("starting pipeline for %s", iso)
+    publish_iso = target_date.isoformat()
+    logger.info("starting %s pipeline, publishing for %s", league, publish_iso)
 
     # 1. Season context.
     season = deps.season_context()
     logger.info("season context loaded: version=%s len=%d", season.version, len(season.text))
 
-    # 2. NBA games. Cleanly short-circuit on a no-games day.
+    # 2. Games: the most recent slate at or before the publish date. Cleanly
+    #    short-circuit when the league hasn't played in the lookback window.
     games_result = deps.fetch_games(target_date)
     if isinstance(games_result, NoGamesSignal):
-        logger.info("no games on %s; nothing to do", iso)
+        logger.info("no %s games near %s; nothing to do", league, publish_iso)
         return None
     games_digest: GamesDigest = games_result
-    logger.info("games digest: %d game(s)", len(games_digest.games))
+    slate_iso = games_digest.date
+    logger.info(
+        "games digest: %d game(s) from %s (slate)", len(games_digest.games), slate_iso
+    )
 
-    # 3. Reddit discourse.
-    reddit_digest = deps.fetch_reddit(target_date)
+    # 3. Reddit discourse for the slate day. The RSS feed filters to the day
+    #    before the date passed, so pass slate + 1 to window on the slate day.
+    slate_date = date_cls.fromisoformat(slate_iso)
+    reddit_digest = deps.fetch_reddit(slate_date + timedelta(days=1))
     logger.info("reddit digest: %d post(s)", len(reddit_digest.posts))
 
     # 4. Candidate answer pool (LLM-assisted).
@@ -255,7 +286,8 @@ def run_pipeline(
     )
     logger.info("candidate pool (%d): %s", len(candidates), candidates)
 
-    # 5. Fill the grid. Daily seed for determinism on re-run.
+    # 5. Fill the grid. Seed off the publish date so re-running the same day is
+    #    deterministic (the file name is the publish date, so this matches).
     wordlist = deps.load_wordlist()
     seed = target_date.toordinal()
     grid = fill_grid(candidates, wordlist, seed=seed)
@@ -278,7 +310,8 @@ def run_pipeline(
 
     # 8. Build + validate the puzzle. Pydantic enforces all invariants.
     puzzle = Puzzle(
-        date=iso,
+        date=publish_iso,
+        slate_date=slate_iso,
         league=league,  # type: ignore[arg-type]
         puzzle_number=puzzle_number,
         grid=grid,
@@ -516,15 +549,26 @@ def _slot_answer(grid: Grid, slot: Slot) -> str:
 
 
 def yesterday_in_eastern(now: datetime | None = None) -> date_cls:
-    """Default ``--date`` value: yesterday in US/Eastern.
+    """Yesterday in US/Eastern.
 
     Mirrors the simplification used by the reddit ingest: ET is treated as a
     fixed UTC-4 (EDT) offset because the season window is always EDT. Good
-    enough for v0.
+    enough for v0. Retained for the reddit windowing math and back-compat.
     """
     instant = now if now is not None else datetime.now(tz=timezone.utc)
     et = instant + ET_OFFSET
     return (et - timedelta(days=1)).date()
+
+
+def today_in_eastern(now: datetime | None = None) -> date_cls:
+    """Default *publish* date: today in US/Eastern.
+
+    The puzzle is published for today; the pipeline then looks back for the
+    league's most recent slate, so we no longer default the date to yesterday.
+    Same fixed-EDT simplification as :func:`yesterday_in_eastern`.
+    """
+    instant = now if now is not None else datetime.now(tz=timezone.utc)
+    return (instant + ET_OFFSET).date()
 
 
 def puzzle_path_for(date_str: str, out_dir: Path) -> Path:
@@ -596,15 +640,31 @@ def _parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         type=str,
         default=None,
         help=(
-            "Target date (ISO YYYY-MM-DD). Defaults to yesterday in US/Eastern. "
-            "The pipeline ingests the slate played on this date."
+            "Publish date (ISO YYYY-MM-DD): the day this puzzle is served as "
+            "today's. Defaults to today in US/Eastern. The pipeline looks back "
+            "from here for the league's most recent slate."
+        ),
+    )
+    parser.add_argument(
+        "--league",
+        type=str,
+        choices=("nba", "wnba"),
+        default="nba",
+        help=(
+            "League to generate for. Selects the season context, subreddit, "
+            "and box-score endpoint. Also the default output subdirectory "
+            "(puzzles/<league>/). Default: nba."
         ),
     )
     parser.add_argument(
         "--out",
         type=str,
-        default="puzzles/",
-        help="Directory to write puzzles/<date>.json into. Default: ./puzzles/",
+        default=None,
+        help=(
+            "Directory to write <date>.json into. Defaults to "
+            "puzzles/<league>/ (e.g. puzzles/nba/). Pass an explicit path to "
+            "override (the league subdir is NOT appended to an explicit --out)."
+        ),
     )
     parser.add_argument(
         "--dry-run",
@@ -647,7 +707,7 @@ def _parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
 
 def _resolve_date(arg: str | None) -> date_cls:
     if arg is None:
-        return yesterday_in_eastern()
+        return today_in_eastern()
     try:
         return date_cls.fromisoformat(arg)
     except ValueError as exc:
@@ -669,7 +729,13 @@ def main(argv: Sequence[str] | None = None, *, deps: Deps | None = None) -> int:
 
     target_date = _resolve_date(args.date)
     iso = target_date.isoformat()
-    out_dir = Path(args.out)
+    league: League = args.league
+    # Output dir: <root>/<league>/. The root defaults to "puzzles/"; an
+    # explicit --out replaces the root but the league subdir is always
+    # appended, so `--out ../puzzles` writes ../puzzles/<league>/ — matching
+    # the per-league layout the frontend serves and the cron expects.
+    out_root = Path(args.out) if args.out else Path("puzzles")
+    out_dir = out_root / league
     target_path = puzzle_path_for(iso, out_dir)
 
     # Idempotency: if the puzzle is already on disk and the user didn't ask
@@ -683,11 +749,13 @@ def main(argv: Sequence[str] | None = None, *, deps: Deps | None = None) -> int:
         return 0
 
     if deps is None:
-        deps = Deps.production(model=args.model, backend=args.backend)
+        deps = Deps.production(model=args.model, backend=args.backend, league=league)
 
     puzzle_num = next_puzzle_number(out_dir, iso)
     try:
-        puzzle = run_pipeline(target_date, deps=deps, puzzle_number=puzzle_num)
+        puzzle = run_pipeline(
+            target_date, deps=deps, puzzle_number=puzzle_num, league=league
+        )
     except RedditIngestError as exc:
         logger.error("reddit ingest failed for %s: %s", iso, exc)
         return 1

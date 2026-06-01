@@ -1,0 +1,191 @@
+{
+  "date": "2026-06-01",
+  "slate_date": "2026-06-01",
+  "league": "wnba",
+  "puzzle_number": 4,
+  "grid": {
+    "size": 5,
+    "cells": [
+      [
+        {
+          "block": true
+        },
+        {
+          "answer": "S"
+        },
+        {
+          "answer": "K"
+        },
+        {
+          "answer": "B"
+        },
+        {
+          "block": true
+        }
+      ],
+      [
+        {
+          "answer": "C"
+        },
+        {
+          "answer": "L"
+        },
+        {
+          "answer": "A"
+        },
+        {
+          "answer": "R"
+        },
+        {
+          "answer": "K"
+        }
+      ],
+      [
+        {
+          "answer": "A"
+        },
+        {
+          "answer": "E"
+        },
+        {
+          "answer": "R"
+        },
+        {
+          "answer": "I"
+        },
+        {
+          "answer": "E"
+        }
+      ],
+      [
+        {
+          "answer": "T"
+        },
+        {
+          "answer": "W"
+        },
+        {
+          "answer": "A"
+        },
+        {
+          "answer": "N"
+        },
+        {
+          "answer": "G"
+        }
+      ],
+      [
+        {
+          "block": true
+        },
+        {
+          "answer": "S"
+        },
+        {
+          "answer": "T"
+        },
+        {
+          "answer": "Y"
+        },
+        {
+          "block": true
+        }
+      ]
+    ]
+  },
+  "entries": [
+    {
+      "id": "1A",
+      "direction": "across",
+      "row": 0,
+      "col": 1,
+      "answer": "SKB",
+      "clue": "Sabrina, Jonquel, and Stewie's tri-code, basically the Liberty's villain era shorthand",
+      "voice": "discoursey"
+    },
+    {
+      "id": "1D",
+      "direction": "down",
+      "row": 0,
+      "col": 1,
+      "answer": "SLEWS",
+      "clue": "What A'ja does to opposing defenses, plural.",
+      "voice": "wry"
+    },
+    {
+      "id": "2D",
+      "direction": "down",
+      "row": 0,
+      "col": 2,
+      "answer": "KARAT",
+      "clue": "Gold purity unit, the \"75\" on Sabrina's chain isn't just for show",
+      "voice": "discoursey"
+    },
+    {
+      "id": "3D",
+      "direction": "down",
+      "row": 0,
+      "col": 3,
+      "answer": "BRINY",
+      "clue": "Like the sweat on the court after a Fever game in July.",
+      "voice": "wry"
+    },
+    {
+      "id": "4A",
+      "direction": "across",
+      "row": 1,
+      "col": 0,
+      "answer": "CLARK",
+      "clue": "Portland's foul leader, unofficially.",
+      "voice": "wry"
+    },
+    {
+      "id": "4D",
+      "direction": "down",
+      "row": 1,
+      "col": 0,
+      "answer": "CAT",
+      "clue": "Ionescu's nickname, she's been that girl since the Liberty era started",
+      "voice": "discoursey"
+    },
+    {
+      "id": "5D",
+      "direction": "down",
+      "row": 1,
+      "col": 4,
+      "answer": "KEG",
+      "clue": "Party supply that rhymes with what A'ja does to defenses.",
+      "voice": "wry"
+    },
+    {
+      "id": "6A",
+      "direction": "across",
+      "row": 2,
+      "col": 0,
+      "answer": "AERIE",
+      "clue": "Aces' home court nickname, used in Las Vegas arena signage.",
+      "voice": "factual"
+    },
+    {
+      "id": "7A",
+      "direction": "across",
+      "row": 3,
+      "col": 0,
+      "answer": "TWANG",
+      "clue": "Sound of a snapped net cord on a deep three.",
+      "voice": "factual"
+    },
+    {
+      "id": "8A",
+      "direction": "across",
+      "row": 4,
+      "col": 1,
+      "answer": "STY",
+      "clue": "Where A'ja's opponents sleep, if they're lucky enough to recover.",
+      "voice": "wry"
+    }
+  ],
+  "season_context_version": "423903c3",
+  "generated_at": "2026-06-01T16:05:07.467445Z",
+  "model": "us.anthropic.claude-sonnet-4-6"
+}
