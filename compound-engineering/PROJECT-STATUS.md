@@ -12,8 +12,9 @@ This doc is the single-page answer to "where are we and what's left." Update it 
 - **v2 — WNBA peer league.** `/nba` and `/wnba` with smart redirect at `/`. Per-league streaks, season contexts, palettes (NBA red / WNBA orange). Cross-league discovery chip.
 - **v3 — Spelling Bee.** Hand-curated names corpus + active-roster auto-merge from `nba_api`. Six implementation units (corpus → schema → generator → hex UI → tier ladder → share). Three routes live: `/nba/bee`, `/wnba/bee`, `/all/bee`. GOAT celebration modal, share text, finish-dismiss state.
 - **UX iteration round 1.** Photo backdrop, splash overlay with sequential `#N`, dismissable finish modal, auto-advance on word completion, real fonts (Fraunces + Inter).
+- **Demo-readiness + reliability pass (2026-06-01).** Fixed the two demo-blocking bugs (stale dev shell needing hard-reload; wrong/stale date). Permanent WNBA generation with most-recent-slate per-league look-back; publish-vs-slate date split; index.json + walk-back fetch fallback; daily Bee generation CLI wired into cron; crisp grid lines; "Reveal one word" Bee hint. Then a full CE Review → Polish → Compound pass: cron per-league failure isolation, off-day streak self-correction, DST-aware publish date. Six learnings captured (see below).
 
-Branch: `main` on `hd-fernandez/nba-crossword`. Latest commit: `c48fa57`. Tests: 241 pipeline + 151 web passing. Routes: 7. Production build verified clean.
+Branch: `main` on `hd-fernandez/nba-crossword`. Latest commit: `91a1a0d`. Tests: 256 pipeline + 172 web passing. Routes: 7. Production build verified clean.
 
 ---
 
@@ -65,6 +66,13 @@ WNBA Bees still cap at ~3–4 valid names per puzzle even after expanding the co
 - [v2 skeleton plan](plans/2026-05-21-002-feat-multi-league-wnba-skeleton-plan.md)
 - [v3 skeleton plan](plans/2026-05-21-003-feat-spelling-bee-skeleton-plan.md)
 - [v3 learnings](solutions/2026-05-26-bee-v3.md)
+- [Bedrock LLM backend](solutions/2026-05-29-bedrock-llm-backend.md)
+- [Service-worker dev staleness](solutions/2026-06-01-service-worker-dev-staleness.md)
+- [Publish vs slate date + per-league look-back](solutions/2026-06-01-publish-vs-slate-date.md)
+- [index.json + walk-back fallback](solutions/2026-06-01-index-walk-back-fallback.md)
+- [Per-league cache namespace](solutions/2026-06-01-per-league-cache-namespace.md)
+- [Provisional state self-correction (streaks)](solutions/2026-06-01-provisional-state-self-correction.md)
+- [Cron per-task isolation](solutions/2026-06-01-cron-per-task-isolation.md)
 
 ---
 
