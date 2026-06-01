@@ -60,10 +60,13 @@ monorepo (`pipeline/` + `web/`); Vercel only needs the `web/` half.
 2. **Root Directory:** set to `web` (not the repo root). This is the single
    most important setting — without it Vercel will try to build from the
    repo root and fail.
-3. **Framework Preset:** Vercel auto-detects Next.js. Leave as-is.
-4. **Build Command:** leave default (`next build`). Our `prebuild` hook runs
-   automatically and syncs the latest `puzzles/*.json` into the build.
-5. **Install Command:** default `npm install`.
+3. **Framework Preset:** pinned to `nextjs` in `vercel.json`. Leave the
+   dashboard on auto-detect; the file wins.
+4. **Build Command:** pinned to `npm run build` in `vercel.json` (not bare
+   `next build` — the `npm run` form fires the `prebuild` hook that syncs the
+   latest `puzzles/*.json` into the build). Leave the dashboard default.
+5. **Install Command:** pinned to `npm ci` in `vercel.json` for reproducible,
+   lockfile-exact installs.
 6. **Output Directory:** default (`.next`).
 7. **Environment variables:** none required for v0. The frontend makes no
    server-side API calls.
@@ -93,8 +96,9 @@ After the first deploy:
 
 - [ ] `https://<project>.vercel.app/` loads and shows today's puzzle (or the
       "no puzzle today" state if there were no NBA games yesterday).
-- [ ] `https://<project>.vercel.app/puzzles/example.json` returns the
-      reference puzzle JSON.
+- [ ] `https://<project>.vercel.app/puzzles/nba/example.json` returns the
+      reference puzzle JSON. (Puzzles are served per-league under
+      `/puzzles/<league>/`; there is no root-level `/puzzles/example.json`.)
 - [ ] `https://<project>.vercel.app/manifest.webmanifest` returns the
       manifest with `Content-Type: application/manifest+json`.
 - [ ] `https://<project>.vercel.app/sw.js` returns the service worker with
