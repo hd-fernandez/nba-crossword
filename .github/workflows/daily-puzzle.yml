@@ -80,7 +80,7 @@ jobs:
           # role credentials are already in the environment.
           NBA_MINI_LLM_BACKEND: bedrock
         run: |
-          set -euo pipefail
+          set -uo pipefail
           ARGS=()
           if [ -n "${{ inputs.date }}" ]; then
             ARGS+=(--date "${{ inputs.date }}")
@@ -92,17 +92,33 @@ jobs:
           # slate, so an off-day for one league doesn't block the other. The
           # CLI appends the league subdir under --out, so these write to
           # ../puzzles/nba/ and ../puzzles/wnba/ respectively.
+          #
+          # Per-league isolation: a transient failure for one league (Bedrock
+          # blip, nba.com 5xx) must NOT abort the other league. We deliberately
+          # drop `-e` and track failures ourselves, then fail the step at the
+          # end so the run still goes red and alerts us — but only after every
+          # league has had its shot. (A no-games day is exit 0, not a failure.)
+          rc=0
           for league in nba wnba; do
             echo "::group::generate ${league}"
-            uv run python -m nba_mini.generate \
-              --league "${league}" --backend bedrock --out ../puzzles "${ARGS[@]}"
+            if ! uv run python -m nba_mini.generate \
+                 --league "${league}" --backend bedrock --out ../puzzles "${ARGS[@]}"; then
+              echo "::error::${league} crossword generation failed"
+              rc=1
+            fi
             echo "::endgroup::"
           done
+          exit "${rc}"
 
       - name: Generate today's Spelling Bees (both leagues)
         working-directory: pipeline
+        # Run even if the crossword step failed: the Bee is corpus-driven and
+        # shares nothing with the crossword (no games, no LLM, no Bedrock), so
+        # a crossword outage must not drop the Bees. `!cancelled()` still skips
+        # this on a manual run cancellation.
+        if: ${{ !cancelled() }}
         run: |
-          set -euo pipefail
+          set -uo pipefail
           # The Bee is corpus-driven, not news-driven: no games, no LLM, no
           # look-back. It just needs a date (seed) and the names corpus, so it
           # runs independently of the crossword and of Bedrock. Writes to
@@ -114,14 +130,25 @@ jobs:
           if [ "${{ inputs.force }}" = "true" ]; then
             ARGS+=(--force)
           fi
+          # Per-league isolation, same rationale as the crossword step.
+          rc=0
           for league in nba wnba; do
             echo "::group::bee ${league}"
-            uv run python -m nba_mini.bee.generate_cli \
-              --league "${league}" --out ../puzzles "${ARGS[@]}"
+            if ! uv run python -m nba_mini.bee.generate_cli \
+                 --league "${league}" --out ../puzzles "${ARGS[@]}"; then
+              echo "::error::${league} Bee generation failed"
+              rc=1
+            fi
             echo "::endgroup::"
           done
+          exit "${rc}"
 
       - name: Commit and push if new puzzles were written
+        # Commit whatever landed even if a generation step failed for one
+        # league — a partial success (e.g. WNBA wrote, NBA errored) should
+        # still ship the WNBA puzzle rather than discarding it. The step that
+        # failed has already turned the run red.
+        if: ${{ !cancelled() }}
         run: |
           set -euo pipefail
           if [ -z "$(git status --porcelain puzzles/)" ]; then
@@ -133,15 +160,18 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
           git add puzzles/
-          # Recover the date from a staged JSON filename (puzzles live under
-          # puzzles/<league>/<date>.json). Works for cron runs and for
-          # workflow_dispatch backfills of older dates alike.
-          PUZZLE_FILE="$(git diff --name-only --cached -- 'puzzles/**/*.json' | head -n 1)"
-          if [ -z "$PUZZLE_FILE" ]; then
+          STAGED="$(git diff --name-only --cached -- 'puzzles/**/*.json')"
+          if [ -z "$STAGED" ]; then
             echo "puzzles/ changed but no JSON file was staged — refusing to commit."
             exit 1
           fi
-          DATE="$(basename "$PUZZLE_FILE" .json)"
+          # Recover the date from a staged JSON filename (puzzles live under
+          # puzzles/<league>/<date>.json and .../<league>/bee/<date>.json).
+          # Works for cron runs and workflow_dispatch backfills alike.
+          DATE="$(basename "$(echo "$STAGED" | head -n 1)" .json)"
+          # Describe which leagues actually changed, so an off-day or a
+          # single-league failure doesn't claim "nba + wnba" misleadingly.
+          LEAGUES="$(echo "$STAGED" | sed -E 's#puzzles/([^/]+)/.*#\1#' | sort -u | paste -sd '+' -)"
 
-          git commit -m "chore(puzzles): add ${DATE} (nba + wnba)"
+          git commit -m "chore(puzzles): add ${DATE} (${LEAGUES})"
           git push

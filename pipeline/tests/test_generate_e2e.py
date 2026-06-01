@@ -46,6 +46,7 @@ from nba_mini.generate import (
     pick_candidate_pool,
     puzzle_path_for,
     run_pipeline,
+    today_in_eastern,
     write_puzzle_json,
     yesterday_in_eastern,
 )
@@ -243,6 +244,22 @@ def test_yesterday_in_eastern_with_known_instant() -> None:
     2026-05-16; yesterday in ET is therefore 2026-05-15."""
     instant = datetime(2026, 5, 17, 3, 0, tzinfo=timezone.utc)
     assert yesterday_in_eastern(instant) == date_cls(2026, 5, 15)
+
+
+def test_today_in_eastern_edt_known_instant() -> None:
+    """In summer (EDT, UTC-4): 03:00 UTC on 2026-05-17 is 23:00 ET on the
+    16th, so today-in-ET is 2026-05-16."""
+    instant = datetime(2026, 5, 17, 3, 0, tzinfo=timezone.utc)
+    assert today_in_eastern(instant) == date_cls(2026, 5, 16)
+
+
+def test_today_in_eastern_is_dst_aware_in_winter() -> None:
+    """The publish date must track DST, matching the frontend's
+    America/New_York. In winter (EST, UTC-5), 04:30 UTC on 2026-01-10 is
+    23:30 ET on the 9th — so today-in-ET is 2026-01-09. The old fixed-UTC-4
+    approximation would have wrongly returned the 10th here (00:30 'ET')."""
+    instant = datetime(2026, 1, 10, 4, 30, tzinfo=timezone.utc)
+    assert today_in_eastern(instant) == date_cls(2026, 1, 9)
 
 
 def test_validate_candidates_filters_invalid() -> None:

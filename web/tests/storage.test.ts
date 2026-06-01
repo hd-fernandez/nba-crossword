@@ -5,6 +5,8 @@ import {
   SCHEMA_VERSION,
   addCompletion,
   addOffDay,
+  clearOffDay,
+  clearOffDayIfMarked,
   computeStreak,
   defaultState,
   getDisplayStreak,
@@ -259,6 +261,30 @@ describe("addCompletion + addOffDay", () => {
     expect(s.leagues.nba.completedDates).toEqual(["2026-05-21"]);
     expect(s.leagues.wnba.completedDates).toEqual([]);
   });
+
+  it("clearOffDay removes a marked off-day", () => {
+    let s: Storage = addOffDay(defaultState(), "nba", "2026-05-20");
+    expect(s.leagues.nba.knownOffDays).toEqual(["2026-05-20"]);
+    s = clearOffDay(s, "nba", "2026-05-20");
+    expect(s.leagues.nba.knownOffDays).toEqual([]);
+  });
+
+  it("clearOffDay is a no-op (same reference) when the date isn't marked", () => {
+    const s = addOffDay(defaultState(), "nba", "2026-05-20");
+    // A date that was never marked: state is returned unchanged so callers can
+    // skip the save.
+    expect(clearOffDay(s, "nba", "2026-05-21")).toBe(s);
+    // Wrong league, same date: also untouched.
+    expect(clearOffDay(s, "wnba", "2026-05-20")).toBe(s);
+  });
+
+  it("clearOffDay only touches the named league", () => {
+    let s: Storage = addOffDay(defaultState(), "nba", "2026-05-20");
+    s = addOffDay(s, "wnba", "2026-05-20");
+    s = clearOffDay(s, "nba", "2026-05-20");
+    expect(s.leagues.nba.knownOffDays).toEqual([]);
+    expect(s.leagues.wnba.knownOffDays).toEqual(["2026-05-20"]);
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -355,6 +381,37 @@ describe("recordCompletion + markOffDay", () => {
     markOffDay("nba", "2026-05-21", backend);
     recordCompletion("nba", "2026-05-21", backend);
     expect(getStreak("nba", "2026-05-21", backend)).toBe(1);
+  });
+
+  it("clearOffDayIfMarked removes a persisted off-day", () => {
+    const backend = makeBackend();
+    markOffDay("nba", "2026-05-20", backend);
+    clearOffDayIfMarked("nba", "2026-05-20", backend);
+    expect(loadState(backend).leagues.nba.knownOffDays).toEqual([]);
+  });
+
+  it("clearOffDayIfMarked is a safe no-op when nothing is marked", () => {
+    const backend = makeBackend();
+    // No throw, no write, empty stays empty.
+    clearOffDayIfMarked("nba", "2026-05-20", backend);
+    expect(loadState(backend).leagues.nba.knownOffDays).toEqual([]);
+  });
+
+  it("self-corrects a cron-lag off-day so it doesn't survive as a free skip", () => {
+    const backend = makeBackend();
+    // Day 1 + 2 completed. Day 3 loaded while the cron lagged: today's puzzle
+    // 404'd, so a fallback served and the day was provisionally marked off.
+    recordCompletion("nba", "2026-05-19", backend);
+    recordCompletion("nba", "2026-05-20", backend);
+    markOffDay("nba", "2026-05-21", backend);
+    // An off-day would let the streak "skip" day 3 — treating a real game day
+    // the user never played as non-breaking.
+    expect(computeStreak(loadState(backend), "nba", "2026-05-21")).toBe(2);
+    // Later that day the real puzzle lands; the page clears the stale off-day.
+    clearOffDayIfMarked("nba", "2026-05-21", backend);
+    // Day 3 is now neither completed nor an off-day, so the streak correctly
+    // stops there rather than skipping it.
+    expect(computeStreak(loadState(backend), "nba", "2026-05-21")).toBe(0);
   });
 });
 

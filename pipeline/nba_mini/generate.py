@@ -49,6 +49,7 @@ from datetime import date as date_cls
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Protocol, Sequence
+from zoneinfo import ZoneInfo
 
 from pydantic import ValidationError
 
@@ -110,6 +111,11 @@ they don't fit."""
 # reddit ingest — the season window is always EDT (UTC-4); revisit only if a
 # pipeline run ever straddles the November DST flip.
 ET_OFFSET = timedelta(hours=-4)
+# DST-aware Eastern zone. Used for the publish date so it matches the
+# frontend's America/New_York computation (Intl.DateTimeFormat) year-round —
+# the fixed ET_OFFSET above is an EDT-only approximation kept for the reddit
+# windowing math, which only runs during the always-EDT season window.
+EASTERN_TZ = ZoneInfo("America/New_York")
 
 
 # ---------------------------------------------------------------------------
@@ -565,10 +571,15 @@ def today_in_eastern(now: datetime | None = None) -> date_cls:
 
     The puzzle is published for today; the pipeline then looks back for the
     league's most recent slate, so we no longer default the date to yesterday.
-    Same fixed-EDT simplification as :func:`yesterday_in_eastern`.
+
+    Uses DST-aware ``America/New_York`` (not the fixed ET_OFFSET) so the
+    publish date agrees with the frontend's ``todayInEastern`` — which also
+    uses ``America/New_York`` — around local midnight in EST months. A
+    one-hour offset error there would otherwise let the pipeline publish under
+    a date the app isn't yet asking for.
     """
     instant = now if now is not None else datetime.now(tz=timezone.utc)
-    return (instant + ET_OFFSET).date()
+    return instant.astimezone(EASTERN_TZ).date()
 
 
 def puzzle_path_for(date_str: str, out_dir: Path) -> Path:

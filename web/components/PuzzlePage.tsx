@@ -22,7 +22,12 @@ import {
   initialState,
   solveReducer,
 } from "@/lib/state";
-import { getDisplayStreak, getStreak, markOffDay } from "@/lib/storage";
+import {
+  clearOffDayIfMarked,
+  getDisplayStreak,
+  getStreak,
+  markOffDay,
+} from "@/lib/storage";
 
 type FetchStatus =
   | { kind: "loading" }
@@ -84,6 +89,12 @@ export function PuzzlePage({ league }: PuzzlePageProps) {
           // for streak purposes; serving a fallback doesn't break the streak.
           if (!resolved.isToday) {
             markOffDay(league, today);
+            setStreak(getDisplayStreak(league, today));
+          } else {
+            // Today's puzzle is present. If an earlier lagged load (cron not
+            // done yet) provisionally marked today as an off-day, undo that so
+            // a real game day doesn't survive in the streak as a free skip.
+            clearOffDayIfMarked(league, today);
             setStreak(getDisplayStreak(league, today));
           }
           setStatus({

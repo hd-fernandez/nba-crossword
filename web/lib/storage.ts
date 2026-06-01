@@ -305,6 +305,33 @@ export function addOffDay(
   };
 }
 
+/**
+ * Pure: returns a new state with `date` removed from a league's
+ * `knownOffDays`. Used to self-correct a day we provisionally marked as an
+ * off-day during a lagged load (today's file 404'd) but which later turned
+ * out to have a real puzzle — so a cron-lag day never permanently inflates
+ * the streak as a free skip. No-op (returns the same reference) when the date
+ * isn't marked, so callers can run it unconditionally without a needless save.
+ */
+export function clearOffDay(
+  state: Storage,
+  league: League,
+  date: string,
+): Storage {
+  const current = state.leagues[league];
+  if (!current.knownOffDays.includes(date)) return state;
+  return {
+    ...state,
+    leagues: {
+      ...state.leagues,
+      [league]: {
+        ...current,
+        knownOffDays: current.knownOffDays.filter((d) => d !== date),
+      },
+    },
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Read+mutate convenience
 // ---------------------------------------------------------------------------
@@ -325,6 +352,24 @@ export function markOffDay(
   backend: StorageBackend | null = resolveBackend(),
 ): Storage {
   const next = addOffDay(loadState(backend), league, date);
+  saveState(next, backend);
+  return next;
+}
+
+/**
+ * Read+mutate companion to {@link markOffDay}: drop a wrongly-recorded
+ * off-day once a real puzzle appears for it. Skips the save entirely when the
+ * date wasn't marked, so it's cheap to call on every load where today's
+ * puzzle is present.
+ */
+export function clearOffDayIfMarked(
+  league: League,
+  date: string,
+  backend: StorageBackend | null = resolveBackend(),
+): Storage {
+  const current = loadState(backend);
+  const next = clearOffDay(current, league, date);
+  if (next === current) return current;
   saveState(next, backend);
   return next;
 }
