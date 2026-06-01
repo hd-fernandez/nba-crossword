@@ -1,6 +1,6 @@
 # nba-crossword Project Status
 
-**Last updated:** 2026-05-29
+**Last updated:** 2026-06-01
 
 This doc is the single-page answer to "where are we and what's left." Update it after every major milestone or session pause. Treat it as the always-current map; brainstorms and plans are the deeper docs underneath.
 
@@ -13,7 +13,7 @@ This doc is the single-page answer to "where are we and what's left." Update it 
 - **v3 — Spelling Bee.** Hand-curated names corpus + active-roster auto-merge from `nba_api`. Six implementation units (corpus → schema → generator → hex UI → tier ladder → share). Three routes live: `/nba/bee`, `/wnba/bee`, `/all/bee`. GOAT celebration modal, share text, finish-dismiss state.
 - **UX iteration round 1.** Photo backdrop, splash overlay with sequential `#N`, dismissable finish modal, auto-advance on word completion, real fonts (Fraunces + Inter).
 
-Branch: `main` on `hd-fernandez/nba-crossword`. Latest commit: `cdba564`. Tests: 219 pipeline + 151 web passing. Routes: 7.
+Branch: `main` on `hd-fernandez/nba-crossword`. Latest commit: `c48fa57`. Tests: 241 pipeline + 151 web passing. Routes: 7. Production build verified clean.
 
 ---
 
@@ -48,7 +48,7 @@ The `.json` endpoint 403s (Reddit hard-blocks anonymous JSON; UA tweaks don't he
 Two parts:
 
 - **GH Actions cron** — workflow code is done: it assumes a Bedrock IAM role via GitHub OIDC (no static keys) and runs on the Bedrock backend with RSS ingest. **Blocked on a one-time AWS-side IAM setup** (register the OIDC provider, create the role + trust policy + Bedrock-invoke policy, set the `AWS_BEDROCK_ROLE_ARN` repo variable). Needs admin on account `042122908126` — likely the Data Strategy team. Full runbook: [reference/bedrock-oidc-setup.md](reference/bedrock-oidc-setup.md).
-- **Vercel hookup** — root dir = `web/`, serves the static `puzzles/`. Not started.
+- **Vercel hookup** — code/config/build all done and verified: `npm run build` prerenders 7 static routes, zero runtime env vars, `vercel.json` pins framework + `npm run build` (load-bearing — fires the puzzle-sync prebuild hook) + `npm ci`. **Blocked only on the one dashboard step Vercel can't self-configure:** import the repo and set **Root Directory = `web`**. `vercel.json` can't set its own root (chicken-and-egg). Then walk the smoke checklist in `web/README.md`. Auto-deploys on every push to `main` after that.
 
 ### 5. (Optional) U7 — Bee generator algorithm tuning
 
@@ -83,13 +83,15 @@ WNBA Bees still cap at ~3–4 valid names per puzzle even after expanding the co
 
 - **~~Snowflake auth~~ — RESOLVED.** Abandoned Snowflake-Cortex; using Amazon Bedrock via AWS SSO instead (see What's-left #1). No outstanding LLM-auth blocker for local runs.
 - **~~Reddit 403~~ — RESOLVED.** Switched to the public RSS feed (see What's-left #3).
-- **Headless Bedrock auth (AWS IAM setup)** — the one remaining blocker for the cron. Workflow code is merged; someone with admin on AWS account `042122908126` must apply the IAM role + OIDC trust policy. Runbook: [reference/bedrock-oidc-setup.md](reference/bedrock-oidc-setup.md).
+Both remaining blockers are external-account actions — all in-repo code/config is done.
+
+- **Headless Bedrock auth (AWS IAM setup)** — blocks the cron. Workflow code is merged; someone with admin on AWS account `042122908126` must apply the IAM role + OIDC trust policy. Runbook: [reference/bedrock-oidc-setup.md](reference/bedrock-oidc-setup.md).
+- **Vercel project creation** — blocks the live site. Needs Henry's Vercel login: import the repo, set Root Directory = `web`. Everything else is pinned in `vercel.json`.
 
 ---
 
 ## Open trivia for later
 
 - Real WNBA hero photo (currently a generic basketball shot).
-- Production icons (192/512/180 raster).
-- Vercel project setup (root dir = `web/`).
+- Production icons (192/512/180 raster) — manifest shows a maskability warning until these land.
 - Historical roster fold-in with fame-floor filter (NBA pre-active, WNBA pre-active).
