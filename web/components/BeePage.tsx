@@ -651,6 +651,12 @@ function feedbackToMessage(f: EntryFeedback): FeedbackMessage {
         animate: false,
         large: false,
       };
+    default: {
+      // Exhaustiveness guard: a new EntryFeedback kind without a case fails to
+      // compile instead of returning undefined and breaking the toast.
+      const _exhaustive: never = f;
+      return _exhaustive;
+    }
   }
 }
 

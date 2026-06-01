@@ -170,6 +170,13 @@ export function beeReducer(puzzle: BeePuzzle) {
           feedbackKey: state.feedbackKey + 1,
         };
       }
+
+      default: {
+        // Exhaustiveness guard: if a new BeeAction is added without a case,
+        // this fails to compile instead of silently no-opping at runtime.
+        const _exhaustive: never = action;
+        return _exhaustive;
+      }
     }
   };
 }

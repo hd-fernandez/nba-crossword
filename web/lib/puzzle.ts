@@ -252,7 +252,13 @@ export async function fetchPuzzleIndex(
     });
     if (!res.ok) return null;
     const parsed = PuzzleIndexSchema.safeParse(await res.json());
-    return parsed.success ? parsed.data : null;
+    if (!parsed.success) {
+      // A malformed index is an operational problem, not a normal 404. Warn so
+      // it's debuggable instead of silently collapsing to "no fallback."
+      console.warn(`[puzzle] malformed ${league} index.json`, parsed.error);
+      return null;
+    }
+    return parsed.data;
   } catch {
     return null;
   }
@@ -287,17 +293,21 @@ export async function fetchLatestPuzzle(
   if (todays) return { puzzle: todays, date: today, isToday: true };
 
   const index = await fetchPuzzleIndex(league, fetchImpl);
-  // Pick the newest date that isn't in the future relative to `today`. A
-  // future-dated puzzle (shouldn't happen, but be defensive) is not "latest."
-  const fallbackDate = index?.dates
+  if (!index) return null;
+  // Candidate fallbacks: every non-future date, newest first. We walk them in
+  // order rather than trusting only the newest — if the newest indexed file
+  // 404s (index/file skew, deploy race, a pruned file) we fall through to the
+  // next one instead of collapsing to a dead "no puzzle" page while older
+  // puzzles still exist.
+  const candidates = index.dates
     .filter((d) => d <= today)
     .sort()
-    .at(-1);
-  if (!fallbackDate) return null;
-
-  const fallback = await fetchPuzzle(league, fallbackDate, fetchImpl);
-  if (!fallback) return null;
-  return { puzzle: fallback, date: fallbackDate, isToday: false };
+    .reverse();
+  for (const date of candidates) {
+    const fallback = await fetchPuzzle(league, date, fetchImpl);
+    if (fallback) return { puzzle: fallback, date, isToday: false };
+  }
+  return null;
 }
 
 /**

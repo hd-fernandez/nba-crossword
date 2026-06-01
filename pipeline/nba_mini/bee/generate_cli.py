@@ -41,23 +41,26 @@ def bee_path_for(date_str: str, bee_dir: Path) -> Path:
 
 
 def next_bee_number(bee_dir: Path, target_iso: str) -> int:
-    """Sequential Bee number for ``target_iso``: count of dated Bee files at or
-    before the target date, plus 1.
+    """Sequential Bee number for ``target_iso``: count of dated Bee files
+    strictly before the target date, plus 1.
 
-    Mirrors the crossword's ``next_puzzle_number`` so re-runs and backfills get
-    a stable number. ``example.json`` is excluded — it isn't a published Bee.
+    The target date itself is skipped so a re-run or ``--force`` regeneration
+    keeps the same number. E.g. dates [2026-05-20, 2026-05-25] with target
+    2026-06-01 => 2 earlier => #3. Mirrors the crossword's
+    ``next_puzzle_number`` so re-runs and backfills get a stable number.
+    ``example.json`` is excluded — it isn't a published Bee.
     """
     if not bee_dir.exists():
         return 1
-    earlier_or_equal = 0
+    earlier = 0
     for p in bee_dir.iterdir():
         if not _DATED_FILENAME_RE.match(p.name):
             continue
         if p.stem == target_iso:
             continue
         if p.stem < target_iso:
-            earlier_or_equal += 1
-    return earlier_or_equal + 1
+            earlier += 1
+    return earlier + 1
 
 
 def write_bee_json(puzzle: BeePuzzle, path: Path) -> None:

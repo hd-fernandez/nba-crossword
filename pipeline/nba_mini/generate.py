@@ -661,9 +661,9 @@ def _parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         type=str,
         default=None,
         help=(
-            "Directory to write <date>.json into. Defaults to "
-            "puzzles/<league>/ (e.g. puzzles/nba/). Pass an explicit path to "
-            "override (the league subdir is NOT appended to an explicit --out)."
+            "Root directory to write into. The <league> subdir is always "
+            "appended, so --out ../puzzles writes ../puzzles/<league>/<date>.json. "
+            "Defaults to the repo-root puzzles/ (e.g. puzzles/nba/)."
         ),
     )
     parser.add_argument(
