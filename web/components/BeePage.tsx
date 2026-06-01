@@ -394,15 +394,21 @@ function BeeBoard({ puzzle, accent }: { puzzle: BeePuzzle; accent: string }) {
       {/* Entry bar */}
       <EntryBar entry={state.entry} feedback={state.lastFeedback} feedbackKey={state.feedbackKey} />
 
-      {/* Hexagon hive — pulses on a correct submission */}
+      {/* Hexagon hive — pulses on a correct submission or a reveal */}
       <div
         key={state.feedbackKey}
         data-testid="bee-hive-wrapper"
-        data-correct={state.lastFeedback?.kind === "ok" ? "true" : "false"}
+        data-correct={
+          state.lastFeedback?.kind === "ok" ||
+          state.lastFeedback?.kind === "revealed"
+            ? "true"
+            : "false"
+        }
         style={{
           margin: "20px 0",
           animation:
-            state.lastFeedback?.kind === "ok"
+            state.lastFeedback?.kind === "ok" ||
+            state.lastFeedback?.kind === "revealed"
               ? "bee-correct-pulse 360ms ease-out"
               : undefined,
         }}
@@ -435,7 +441,7 @@ function BeeBoard({ puzzle, accent }: { puzzle: BeePuzzle; accent: string }) {
           display: "flex",
           gap: 8,
           justifyContent: "center",
-          marginBottom: 16,
+          marginBottom: 10,
         }}
       >
         <ActionButton onClick={() => dispatch({ type: "delete" })} label="Delete" />
@@ -445,6 +451,37 @@ function BeeBoard({ puzzle, accent }: { puzzle: BeePuzzle; accent: string }) {
           label="Enter"
           accent={accent}
         />
+      </div>
+
+      {/* Reveal-word hint: surfaces the shortest unfound name first, then the
+          next shortest, and so on. Disabled once everything is found. */}
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          marginBottom: 16,
+        }}
+      >
+        <button
+          type="button"
+          onClick={() => dispatch({ type: "revealWord" })}
+          disabled={solved}
+          data-testid="bee-action-reveal-word"
+          style={{
+            padding: "7px 16px",
+            borderRadius: 999,
+            border: "1px dashed #c9b66a",
+            background: "transparent",
+            color: solved ? "#bbb" : "#9a7b00",
+            fontSize: 12,
+            fontWeight: 600,
+            letterSpacing: "0.04em",
+            cursor: solved ? "default" : "pointer",
+            opacity: solved ? 0.5 : 1,
+          }}
+        >
+          Reveal one word
+        </button>
       </div>
 
       {/* Found names list */}
@@ -597,6 +634,20 @@ function feedbackToMessage(f: EntryFeedback): FeedbackMessage {
       return {
         text: "Not in our list",
         color: "#a04040",
+        animate: false,
+        large: false,
+      };
+    case "revealed":
+      return {
+        text: `Revealed ${f.name} (+${f.pointsGained})`,
+        color: "#9a7b00",
+        animate: true,
+        large: false,
+      };
+    case "allFound":
+      return {
+        text: "Every name already found",
+        color: "#888",
         animate: false,
         large: false,
       };

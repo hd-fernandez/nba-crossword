@@ -9,11 +9,13 @@ import { scoreName, type BeePuzzle } from "./bee";
 
 export type EntryFeedback =
   | { kind: "ok"; pointsGained: number; isPangram: boolean }
+  | { kind: "revealed"; name: string; pointsGained: number; isPangram: boolean }
   | { kind: "tooShort" }
   | { kind: "missingCenter" }
   | { kind: "badLetters" }
   | { kind: "notInList" }
-  | { kind: "alreadyFound" };
+  | { kind: "alreadyFound" }
+  | { kind: "allFound" };
 
 export interface BeeState {
   entry: string;
@@ -31,7 +33,8 @@ export type BeeAction =
   | { type: "delete" }
   | { type: "shuffle" }
   | { type: "submit" }
-  | { type: "clearEntry" };
+  | { type: "clearEntry" }
+  | { type: "revealWord" };
 
 export function initialBeeState(): BeeState {
   return {
@@ -67,6 +70,11 @@ export function beeReducer(puzzle: BeePuzzle) {
   const validSet = new Set(puzzle.valid_names);
   const pangramSet = new Set(puzzle.pangrams);
   const board = new Set([puzzle.center_letter, ...puzzle.outer_letters]);
+  // Reveal order: shortest first, ties broken alphabetically so the sequence
+  // is deterministic and stable across reveals.
+  const revealOrder = [...puzzle.valid_names].sort(
+    (a, b) => a.length - b.length || (a < b ? -1 : a > b ? 1 : 0),
+  );
 
   return function reduce(state: BeeState, action: BeeAction): BeeState {
     switch (action.type) {
@@ -99,6 +107,35 @@ export function beeReducer(puzzle: BeePuzzle) {
         // Pure-data only; the visual shuffle of outer letters is owned by
         // the renderer (a `shuffleKey` ref bumped by the same dispatch).
         return state;
+      }
+
+      case "revealWord": {
+        // Reveal the shortest not-yet-found name (ties alphabetical). Scores
+        // it exactly like a normal find — a reveal is a hint, not a separate
+        // currency. Clears any in-progress entry so the board reads cleanly.
+        const foundSet = new Set(state.found);
+        const next = revealOrder.find((name) => !foundSet.has(name));
+        if (next === undefined) {
+          return {
+            ...state,
+            lastFeedback: { kind: "allFound" },
+            feedbackKey: state.feedbackKey + 1,
+          };
+        }
+        const isPangram = pangramSet.has(next);
+        const points = scoreName(next, isPangram);
+        return {
+          ...state,
+          entry: "",
+          found: [next, ...state.found],
+          lastFeedback: {
+            kind: "revealed",
+            name: next,
+            pointsGained: points,
+            isPangram,
+          },
+          feedbackKey: state.feedbackKey + 1,
+        };
       }
 
       case "submit": {
