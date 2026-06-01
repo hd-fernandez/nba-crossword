@@ -5,6 +5,12 @@ name: Daily Puzzle
 # Trigger: 10:00 UTC daily — that's 06:00 ET in summer (EDT, UTC-4) and
 # 05:00 ET in winter (EST, UTC-5). The plan accepts this DST drift for v0.
 # Manual dispatch is also available for backfills and recovery.
+#
+# LLM auth: clue generation runs Claude on Amazon Bedrock. The runner has no
+# AWS SSO session, so we assume an IAM role via GitHub's OIDC provider — no
+# long-lived keys in secrets. The role ARN lives in the repo variable
+# AWS_BEDROCK_ROLE_ARN; one-time AWS-side setup is documented in
+# compound-engineering/reference/bedrock-oidc-setup.md.
 
 on:
   schedule:
@@ -21,10 +27,11 @@ on:
         type: boolean
         default: false
 
-# Push the freshly generated puzzle JSON back to main with the workflow's
-# default GITHUB_TOKEN.
+# contents:write — push the freshly generated puzzle JSON back to main.
+# id-token:write — mint the OIDC token used to assume the Bedrock IAM role.
 permissions:
   contents: write
+  id-token: write
 
 # A manual dispatch should never race the cron. We don't cancel an in-flight
 # run — we'd rather queue and let the running generation finish.
@@ -32,19 +39,30 @@ concurrency:
   group: daily-puzzle
   cancel-in-progress: false
 
+env:
+  AWS_REGION: ${{ vars.AWS_REGION || 'us-east-1' }}
+
 jobs:
   generate:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - name: Checkout main
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           # Required so the final `git push` reuses GITHUB_TOKEN credentials.
           persist-credentials: true
 
+      - name: Configure AWS credentials (Bedrock via OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_BEDROCK_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          # Short-lived session; the daily run finishes well within an hour.
+          role-session-name: nba-mini-daily-puzzle
+
       - name: Set up uv (with Python 3.12)
-        uses: astral-sh/setup-uv@v3
+        uses: astral-sh/setup-uv@v5
         with:
           version: latest
           # Pipeline pyproject.toml requires-python = ">=3.12". Pin explicitly
@@ -58,7 +76,9 @@ jobs:
       - name: Generate today's puzzle
         working-directory: pipeline
         env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          # Drive the pipeline onto Bedrock. AWS_REGION and the OIDC-assumed
+          # role credentials are already in the environment.
+          NBA_MINI_LLM_BACKEND: bedrock
         run: |
           set -euo pipefail
           ARGS=()
@@ -69,7 +89,7 @@ jobs:
             ARGS+=(--force)
           fi
           # cwd is pipeline/, so ../puzzles points at the repo-root puzzles/.
-          uv run python -m nba_mini.generate --out ../puzzles "${ARGS[@]}"
+          uv run python -m nba_mini.generate --backend bedrock --out ../puzzles "${ARGS[@]}"
 
       - name: Commit and push if a new puzzle was written
         run: |

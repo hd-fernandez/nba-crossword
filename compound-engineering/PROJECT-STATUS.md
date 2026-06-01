@@ -45,7 +45,10 @@ The `.json` endpoint 403s (Reddit hard-blocks anonymous JSON; UA tweaks don't he
 
 ### 4. Production deploy
 
-Vercel hookup + GH Actions cron on a schedule. The cron still needs a Bedrock auth path that works headless (IAM role via OIDC — the runner has no SSO session). The Reddit half of the old cron failure is now fixed.
+Two parts:
+
+- **GH Actions cron** — workflow code is done: it assumes a Bedrock IAM role via GitHub OIDC (no static keys) and runs on the Bedrock backend with RSS ingest. **Blocked on a one-time AWS-side IAM setup** (register the OIDC provider, create the role + trust policy + Bedrock-invoke policy, set the `AWS_BEDROCK_ROLE_ARN` repo variable). Needs admin on account `042122908126` — likely the Data Strategy team. Full runbook: [reference/bedrock-oidc-setup.md](reference/bedrock-oidc-setup.md).
+- **Vercel hookup** — root dir = `web/`, serves the static `puzzles/`. Not started.
 
 ### 5. (Optional) U7 — Bee generator algorithm tuning
 
@@ -80,7 +83,7 @@ WNBA Bees still cap at ~3–4 valid names per puzzle even after expanding the co
 
 - **~~Snowflake auth~~ — RESOLVED.** Abandoned Snowflake-Cortex; using Amazon Bedrock via AWS SSO instead (see What's-left #1). No outstanding LLM-auth blocker for local runs.
 - **~~Reddit 403~~ — RESOLVED.** Switched to the public RSS feed (see What's-left #3).
-- **Headless Bedrock auth** — the only thing standing between us and a working cron. The GH runner has no SSO session; needs an IAM role assumed via OIDC (or creds in secrets). See What's-left #4.
+- **Headless Bedrock auth (AWS IAM setup)** — the one remaining blocker for the cron. Workflow code is merged; someone with admin on AWS account `042122908126` must apply the IAM role + OIDC trust policy. Runbook: [reference/bedrock-oidc-setup.md](reference/bedrock-oidc-setup.md).
 
 ---
 
