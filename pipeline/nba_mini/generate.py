@@ -76,12 +76,12 @@ from nba_mini.ingest.nba_stats import (
     League,
     NBAStatsError,
     NoGamesSignal,
-    fetch_most_recent_games,
+    fetch_recent_games,
 )
 from nba_mini.ingest.reddit import (
     RedditDigest,
     RedditIngestError,
-    fetch_yesterday_discourse_rss,
+    fetch_recent_discourse_rss,
 )
 from nba_mini.schema import GRID_SIZE, BlockCell, Entry, Grid, Puzzle
 from nba_mini.season_context import (
@@ -130,8 +130,27 @@ RedditFetcher = Callable[[date_cls], RedditDigest]
 NBAStatsFetcher = Callable[[date_cls], "GamesDigest | NoGamesSignal"]
 WordlistLoader = Callable[[], list[str]]
 
-# Per-league subreddit for discourse ingest. Both feeds are public RSS.
-_SUBREDDITS: dict[League, str] = {"nba": "nba", "wnba": "wnba"}
+# Per-league subreddits for discourse ingest, in priority order (earlier subs
+# win permalink-dedup ties). All are public RSS. The NBA set spans the main
+# board, the discussion/analysis subs, and the meme/banter subs — the meme subs
+# are title-heavy, which suits the RSS feed (titles only, no comment bodies).
+_SUBREDDITS: dict[League, list[str]] = {
+    "nba": [
+        "nba",
+        "nbadiscussion",
+        "nbatalk",
+        "nbaeastmemewar",
+        "nbawestmemewar",
+        "nbacirclejerk",
+        "nbaconvo",
+    ],
+    "wnba": ["wnba"],
+}
+
+# How many days of recent games + discourse to pull into the pool. Wider than a
+# single night so the puzzle reflects current events, not just last night's
+# slate. See compound-engineering/solutions for the rationale.
+RECENCY_WINDOW_DAYS = 3
 
 
 class ClueGenerator(Protocol):
@@ -211,11 +230,15 @@ class Deps:
             raise SystemExit(
                 f"unknown LLM backend {backend!r}; expected 'anthropic' or 'bedrock'"
             )
-        subreddit = _SUBREDDITS[league]
+        subreddits = _SUBREDDITS[league]
         return Deps(
             season_context=lambda: load_season_context(league=league),
-            fetch_reddit=lambda d: fetch_yesterday_discourse_rss(d, subreddit=subreddit),
-            fetch_games=lambda d: fetch_most_recent_games(d, league=league),
+            fetch_reddit=lambda d: fetch_recent_discourse_rss(
+                d, subreddits=subreddits, window_days=RECENCY_WINDOW_DAYS
+            ),
+            fetch_games=lambda d: fetch_recent_games(
+                d, league=league, window_days=RECENCY_WINDOW_DAYS
+            ),
             load_wordlist=lambda: load_wordlist(),
             llm=llm,
             clue_generator=generate_clues,
@@ -277,8 +300,9 @@ def run_pipeline(
         "games digest: %d game(s) from %s (slate)", len(games_digest.games), slate_iso
     )
 
-    # 3. Reddit discourse for the slate day. The RSS feed filters to the day
-    #    before the date passed, so pass slate + 1 to window on the slate day.
+    # 3. Reddit discourse over the recency window ending on the slate day. The
+    #    fetcher's window is [d - window_days, d) in ET, so passing slate + 1
+    #    covers the slate day and the prior days — matching the games window.
     slate_date = date_cls.fromisoformat(slate_iso)
     reddit_digest = deps.fetch_reddit(slate_date + timedelta(days=1))
     logger.info("reddit digest: %d post(s)", len(reddit_digest.posts))

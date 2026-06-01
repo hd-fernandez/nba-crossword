@@ -679,6 +679,75 @@ def fetch_most_recent_games(
     return NoGamesSignal(date=start.isoformat())
 
 
+def fetch_recent_games(
+    start: date_cls,
+    *,
+    league: League = "nba",
+    window_days: int = 3,
+    max_lookback: int = MAX_LOOKBACK_DAYS,
+    client: StatsClient | None = None,
+    cache_dir: Path | None = None,
+    retry: RetryConfig | None = None,
+    sleep=time.sleep,
+) -> GamesDigest | NoGamesSignal:
+    """Gather the league's games over a multi-day recency window.
+
+    Where :func:`fetch_most_recent_games` returns a single slate, this returns
+    the games from the most recent slate **plus** the preceding ``window_days``
+    of slates merged into one digest — a richer, more "current events" pool for
+    clue generation than one night's box scores.
+
+    The walk-back to find the *first* game day reuses ``fetch_most_recent_games``
+    (so the off-season / long-break short-circuit and lookback bound are shared).
+    From that most-recent slate date we then collect each prior day within the
+    window that also had games. The resulting digest is **dated to the most
+    recent slate** — that's the ``slate_date`` the puzzle records — while its
+    ``games`` list spans the window.
+
+    Returns ``NoGamesSignal`` (dated to ``start``) when the league has no games
+    anywhere in the lookback window, exactly like ``fetch_most_recent_games``.
+    """
+    probe_client = client or NbaApiStatsClient(league)
+    most_recent = fetch_most_recent_games(
+        start,
+        league=league,
+        max_lookback=max_lookback,
+        client=probe_client,
+        cache_dir=cache_dir,
+        retry=retry,
+        sleep=sleep,
+    )
+    if isinstance(most_recent, NoGamesSignal):
+        return most_recent
+
+    anchor = date_cls.fromisoformat(most_recent.date)
+    games: list[GameSummary] = list(most_recent.games)
+    # Walk the days strictly before the anchor, within the window, merging any
+    # that also had games. Days with no games are simply skipped — a quiet
+    # Tuesday inside the window doesn't end the walk.
+    for delta in range(1, window_days):
+        day = anchor - timedelta(days=delta)
+        result = fetch_yesterday_games(
+            day,
+            league=league,
+            client=probe_client,
+            cache_dir=cache_dir,
+            retry=retry,
+            sleep=sleep,
+        )
+        if isinstance(result, GamesDigest):
+            games.extend(result.games)
+
+    logger.info(
+        "%s: recent-games window collected %d game(s) across up to %d day(s) ending %s",
+        league,
+        len(games),
+        window_days,
+        most_recent.date,
+    )
+    return GamesDigest(date=most_recent.date, games=games)
+
+
 def _format_score(home: str, home_score: int, away: str, away_score: int, period: int) -> str:
     if home_score >= away_score:
         head = f"{home} {home_score}, {away} {away_score}"
@@ -704,5 +773,6 @@ __all__ = [
     "StatsClient",
     "TopPerformer",
     "fetch_most_recent_games",
+    "fetch_recent_games",
     "fetch_yesterday_games",
 ]

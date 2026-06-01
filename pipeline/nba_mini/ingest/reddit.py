@@ -198,9 +198,14 @@ def fetch_yesterday_discourse(
 # needs, so we accept the trade and surface empty `top_comments` / `score=0`.
 
 
-def reddit_rss_url(subreddit: str = "nba") -> str:
-    """Top-of-day Atom feed URL for a subreddit."""
-    return f"https://www.reddit.com/r/{subreddit}/top/.rss?t=day"
+def reddit_rss_url(subreddit: str = "nba", *, window: str = "day") -> str:
+    """Top-of-``window`` Atom feed URL for a subreddit.
+
+    ``window`` is Reddit's ``t`` param: ``day`` | ``week`` | ``month`` | ...
+    We use ``week`` for the multi-day recency pool and ``day`` for the legacy
+    single-day path.
+    """
+    return f"https://www.reddit.com/r/{subreddit}/top/.rss?t={window}"
 
 
 def fetch_yesterday_discourse_rss(
@@ -260,6 +265,97 @@ def fetch_yesterday_discourse_rss(
         )
 
     return RedditDigest(date=yesterday_iso, posts=posts)
+
+
+def fetch_recent_discourse_rss(
+    today: date,
+    *,
+    subreddits: list[str],
+    window_days: int = 3,
+    rss_by_sub: dict[str, str] | None = None,
+    cache_dir: Path | None = None,
+) -> RedditDigest:
+    """Merge several subreddits' top-of-week feeds into one recency digest.
+
+    Where :func:`fetch_yesterday_discourse_rss` reads a single subreddit's
+    single-day feed, this reads *multiple* subreddits over a multi-day window —
+    the wider, more-current discourse pool that produces better clues.
+
+    Args:
+        today: Pipeline run date (US/Eastern). The window is the ``window_days``
+            ET-days strictly before ``today`` (i.e. ``[today-window_days,
+            today)``), so "today" itself — partial and noisy — is excluded.
+        subreddits: Subreddits to read, in priority order. The merged digest is
+            deduped by permalink, first occurrence winning, so earlier
+            subreddits in the list win ties.
+        window_days: How many days back to include. Defaults to 3.
+        rss_by_sub: Optional ``{subreddit: raw_atom_xml}`` for tests; when given,
+            no network calls are made and only the listed subs are read.
+        cache_dir: Where to cache live responses. Ignored when ``rss_by_sub``
+            is given.
+
+    Returns:
+        A ``RedditDigest`` dated to the most recent day in the window
+        (``today - 1``), with posts from every subreddit merged newest-first.
+
+    Notes:
+        Per-subreddit failures are isolated: a single sub that 403s, times out,
+        or returns junk is logged and skipped rather than failing the whole
+        batch. Only if *every* subreddit fails do we raise, since that's a real
+        outage rather than one flaky feed.
+    """
+    window_start = today - timedelta(days=window_days)
+    window_end = today  # exclusive — excludes the partial current ET-day
+    start_utc, _ = _et_day_bounds_utc(window_start)
+    _, end_utc = _et_day_bounds_utc(window_end - timedelta(days=1))
+
+    most_recent_iso = (today - timedelta(days=1)).isoformat()
+
+    seen_permalinks: set[str] = set()
+    merged: list[RedditPost] = []
+    failures = 0
+    for sub in subreddits:
+        try:
+            if rss_by_sub is not None:
+                if sub not in rss_by_sub:
+                    continue
+                rss_text = rss_by_sub[sub]
+            else:
+                resolved_cache = _resolve_cache_dir(cache_dir, most_recent_iso)
+                rss_text = _live_rss_fetch(
+                    reddit_rss_url(sub, window="week"), resolved_cache
+                )
+            entries = _parse_rss_entries(rss_text)
+        except RedditIngestError as e:
+            failures += 1
+            logger.warning("reddit: skipping r/%s — %s", sub, e)
+            continue
+
+        for entry in entries:
+            created = entry["created_utc"]
+            if created is not None and not (start_utc <= created < end_utc):
+                continue
+            permalink = entry["permalink"]
+            if permalink in seen_permalinks:
+                continue
+            seen_permalinks.add(permalink)
+            merged.append(
+                RedditPost(
+                    title=entry["title"] or "(untitled)",
+                    flair=entry["flair"],
+                    score=0,
+                    comment_count=0,
+                    top_comments=[],
+                    permalink=permalink,
+                )
+            )
+
+    if failures and failures == len(subreddits):
+        raise RedditNetworkError(
+            f"all {failures} subreddit feed(s) failed: {', '.join(subreddits)}"
+        )
+
+    return RedditDigest(date=most_recent_iso, posts=merged)
 
 
 # Atom namespace used by Reddit's RSS feed.

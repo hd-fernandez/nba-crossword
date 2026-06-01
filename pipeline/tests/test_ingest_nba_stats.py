@@ -26,6 +26,7 @@ from nba_mini.ingest.nba_stats import (
     NBAStatsParseError,
     RetryConfig,
     fetch_most_recent_games,
+    fetch_recent_games,
     fetch_yesterday_games,
 )
 
@@ -628,3 +629,69 @@ def test_most_recent_returns_no_games_when_window_is_empty(tmp_path: Path) -> No
     assert result.date == "2026-07-04"
     # Probed start + 3 lookback days = 4 dates.
     assert len(client.scoreboard_dates) == 4
+
+
+# ---------------------------------------------------------------------------
+# Multi-day recency window (fetch_recent_games)
+# ---------------------------------------------------------------------------
+
+
+def test_recent_games_merges_window_dated_to_most_recent(tmp_path: Path) -> None:
+    # Games on the anchor day and one day inside the window: both slates merge,
+    # and the digest is dated to the most recent (anchor) day.
+    client = DateAwareStubClient(
+        game_dates={"2026-06-01", "2026-05-31"}, boxscores=_default_boxscores()
+    )
+    result = fetch_recent_games(
+        date(2026, 6, 1),
+        window_days=3,
+        client=client,
+        cache_dir=tmp_path,
+        sleep=_no_sleep,
+    )
+    assert isinstance(result, GamesDigest)
+    assert result.date == "2026-06-01"
+    # Two slates' games are pooled (the fixture's games appear once per day).
+    single = fetch_most_recent_games(
+        date(2026, 6, 1),
+        client=DateAwareStubClient(
+            game_dates={"2026-06-01"}, boxscores=_default_boxscores()
+        ),
+        cache_dir=tmp_path,
+        sleep=_no_sleep,
+    )
+    assert isinstance(single, GamesDigest)
+    assert len(result.games) == 2 * len(single.games)
+
+
+def test_recent_games_skips_quiet_days_inside_window(tmp_path: Path) -> None:
+    # Anchor has games; the day before is quiet; two days before has games.
+    # The quiet day is skipped, not treated as the end of the walk.
+    client = DateAwareStubClient(
+        game_dates={"2026-06-01", "2026-05-30"}, boxscores=_default_boxscores()
+    )
+    result = fetch_recent_games(
+        date(2026, 6, 1),
+        window_days=3,
+        client=client,
+        cache_dir=tmp_path,
+        sleep=_no_sleep,
+    )
+    assert isinstance(result, GamesDigest)
+    assert result.date == "2026-06-01"
+    # 06-01 (anchor) + 05-30 both contribute; 05-31 (quiet) contributes nothing.
+    assert len(result.games) > 0
+
+
+def test_recent_games_no_games_in_window(tmp_path: Path) -> None:
+    client = DateAwareStubClient(game_dates=set(), boxscores={})
+    result = fetch_recent_games(
+        date(2026, 7, 4),
+        window_days=3,
+        client=client,
+        cache_dir=tmp_path,
+        sleep=_no_sleep,
+        max_lookback=3,
+    )
+    assert isinstance(result, NoGamesSignal)
+    assert result.date == "2026-07-04"

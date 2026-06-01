@@ -18,6 +18,7 @@ from nba_mini.ingest.reddit import (
     RedditRateLimitError,
     RedditResponseError,
     _split_flair_and_title,
+    fetch_recent_discourse_rss,
     fetch_yesterday_discourse,
     fetch_yesterday_discourse_rss,
     reddit_rss_url,
@@ -429,3 +430,58 @@ def test_split_flair_and_title_variants() -> None:
 def test_reddit_rss_url_defaults_to_nba() -> None:
     assert reddit_rss_url() == "https://www.reddit.com/r/nba/top/.rss?t=day"
     assert reddit_rss_url("wnba") == "https://www.reddit.com/r/wnba/top/.rss?t=day"
+
+
+def test_reddit_rss_url_window_param() -> None:
+    assert (
+        reddit_rss_url("nbatalk", window="week")
+        == "https://www.reddit.com/r/nbatalk/top/.rss?t=week"
+    )
+
+
+# ---------------------------------------------------------------------------
+# Multi-subreddit, multi-day recency digest
+# ---------------------------------------------------------------------------
+
+
+def test_recent_window_keeps_days_a_single_day_drops() -> None:
+    # The single-day path drops the 2026-05-13 "Old discussion thread"; a 3-day
+    # window ending 2026-05-15 (i.e. [05-12, 05-15)) must keep it.
+    digest = fetch_recent_discourse_rss(
+        TODAY, subreddits=["nba"], window_days=3, rss_by_sub={"nba": RSS_FIXTURE}
+    )
+    titles = [p.title for p in digest.posts]
+    assert any("Old discussion thread" in t for t in titles)
+    assert any("Lakers defeat the Celtics" in t for t in titles)
+    # Dated to the most recent day in the window (yesterday).
+    assert digest.date == YESTERDAY_ISO
+
+
+def test_recent_window_merges_and_dedups_by_permalink() -> None:
+    # The same fixture served from two subs: every permalink is a duplicate, so
+    # the merged post count equals the single-sub count (no doubling).
+    one = fetch_recent_discourse_rss(
+        TODAY, subreddits=["nba"], window_days=3, rss_by_sub={"nba": RSS_FIXTURE}
+    )
+    merged = fetch_recent_discourse_rss(
+        TODAY,
+        subreddits=["nba", "nbatalk"],
+        window_days=3,
+        rss_by_sub={"nba": RSS_FIXTURE, "nbatalk": RSS_FIXTURE},
+    )
+    assert len(merged.posts) == len(one.posts)
+    permalinks = [p.permalink for p in merged.posts]
+    assert len(permalinks) == len(set(permalinks))
+
+
+def test_recent_window_isolates_per_sub_failure() -> None:
+    # A sub absent from rss_by_sub is simply skipped (treated as no data), so a
+    # single missing/bad feed doesn't sink the batch.
+    digest = fetch_recent_discourse_rss(
+        TODAY,
+        subreddits=["nba", "deadsub"],
+        window_days=3,
+        rss_by_sub={"nba": RSS_FIXTURE},  # "deadsub" missing
+    )
+    assert digest.posts  # still got nba's posts
+    assert digest.date == YESTERDAY_ISO
