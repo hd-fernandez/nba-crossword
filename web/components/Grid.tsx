@@ -26,6 +26,11 @@ export interface GridHandle {
 }
 
 const CELL_SIZE = 60; // px
+// One color for every grid line and for the block squares, so blocks read as
+// solid extensions of the frame and never show a seam against the lines. Lines
+// are drawn as real 1px cell borders (not gap-bleed) so they tile crisply and
+// uniformly at any device-pixel ratio.
+const LINE_COLOR = "#1a1a1a";
 
 /**
  * The 5x5 puzzle grid with keyboard + touch input.
@@ -162,9 +167,11 @@ function GridImpl(
         style={{
           display: "grid",
           gridTemplateColumns: `repeat(${puzzle.grid.size}, ${CELL_SIZE}px)`,
-          gap: 1,
-          background: "#1a1a1a",
-          border: "2px solid #1a1a1a",
+          // No gap: each cell draws its own right + bottom line; the container
+          // supplies the top + left edge. Every line is therefore exactly 1px
+          // and drawn exactly once — no gap-bleed, no doubling, no seams.
+          borderTop: `1px solid ${LINE_COLOR}`,
+          borderLeft: `1px solid ${LINE_COLOR}`,
           borderRadius: 6,
           overflow: "hidden",
           boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
@@ -183,9 +190,12 @@ function GridImpl(
                   role="gridcell"
                   aria-label={`block at row ${r + 1} column ${c + 1}`}
                   style={{
+                    boxSizing: "border-box",
                     width: CELL_SIZE,
                     height: CELL_SIZE,
-                    background: "#121212",
+                    borderRight: `1px solid ${LINE_COLOR}`,
+                    borderBottom: `1px solid ${LINE_COLOR}`,
+                    background: LINE_COLOR,
                   }}
                 />
               );
@@ -223,8 +233,11 @@ function GridImpl(
                   focusGrid();
                 }}
                 style={{
+                  boxSizing: "border-box",
                   width: CELL_SIZE,
                   height: CELL_SIZE,
+                  borderRight: `1px solid ${LINE_COLOR}`,
+                  borderBottom: `1px solid ${LINE_COLOR}`,
                   background: bg,
                   position: "relative",
                   display: "flex",
