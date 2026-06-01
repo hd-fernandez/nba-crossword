@@ -6,6 +6,7 @@ import { BeeFinishModal } from "@/components/BeeFinishModal";
 import { BeeHive } from "@/components/BeeHive";
 import { LeagueToggle } from "@/components/LeagueToggle";
 import { configFor } from "@/lib/league";
+import { withBasePath } from "@/lib/base-path";
 import {
   scoreName,
   tierForScore,
@@ -105,7 +106,7 @@ export function BeePage({ league }: BeePageProps) {
         style={{
           position: "fixed",
           inset: 0,
-          backgroundImage: `url(${cfg.heroPhoto})`,
+          backgroundImage: `url(${withBasePath(cfg.heroPhoto)})`,
           backgroundSize: "cover",
           backgroundPosition: "center",
           zIndex: -2,

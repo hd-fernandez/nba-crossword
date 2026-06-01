@@ -25,14 +25,23 @@ const CACHE_VERSION = "nba-mini-v1";
 const SHELL_CACHE = `${CACHE_VERSION}-shell`;
 const PUZZLE_CACHE = `${CACHE_VERSION}-puzzles`;
 
+// Deploy-location base path, derived from the SW's own URL at runtime.
+// This file is a static asset Next.js never rewrites, so it can't read the
+// build-time NEXT_PUBLIC_BASE_PATH. Instead we read it from our own location:
+// the SW is served at `${BASE}/sw.js`, so stripping the trailing "/sw.js"
+// yields the base ("" at the site root, "/nba-crossword" under GitHub Pages).
+// Every absolute path below is prefixed with this so the SW controls the
+// right URLs regardless of where the app is mounted.
+const BASE = self.location.pathname.replace(/\/sw\.js$/, "");
+
 // Minimum shell to make the app open offline. Next.js fingerprints its built
 // assets, so we deliberately don't pre-list them here — they get cached on
 // first fetch via the runtime cache-first path. The icons + manifest are
 // stable URLs and worth pre-warming so the install UX works offline-first.
 const SHELL_PRECACHE = [
-  "/",
-  "/manifest.webmanifest",
-  "/icons/icon.svg",
+  `${BASE}/`,
+  `${BASE}/manifest.webmanifest`,
+  `${BASE}/icons/icon.svg`,
 ];
 
 self.addEventListener("install", (event) => {
@@ -85,14 +94,14 @@ self.addEventListener("fetch", (event) => {
   if (url.origin !== self.location.origin) return;
 
   // Daily puzzle JSON: network-first, cache as fallback.
-  if (url.pathname.startsWith("/puzzles/") && url.pathname.endsWith(".json")) {
+  if (url.pathname.startsWith(`${BASE}/puzzles/`) && url.pathname.endsWith(".json")) {
     event.respondWith(networkFirst(request, PUZZLE_CACHE));
     return;
   }
 
   // Don't cache the service worker itself — let the browser re-validate it
-  // every load. (Vercel headers reinforce this; this is belt-and-suspenders.)
-  if (url.pathname === "/sw.js") return;
+  // every load. (Host headers reinforce this; this is belt-and-suspenders.)
+  if (url.pathname === `${BASE}/sw.js`) return;
 
   // App shell + built static assets: cache-first.
   event.respondWith(cacheFirst(request, SHELL_CACHE));

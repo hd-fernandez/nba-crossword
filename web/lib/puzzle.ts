@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { withBasePath } from "./base-path";
+
 export const GRID_SIZE = 5;
 
 export const VoiceSchema = z.enum(["wry", "discoursey", "factual"]);
@@ -215,7 +217,7 @@ export async function fetchPuzzle(
   date: string = todayInEastern(),
   fetchImpl: typeof fetch = fetch,
 ): Promise<Puzzle | null> {
-  const res = await fetchImpl(`/puzzles/${league}/${date}.json`, {
+  const res = await fetchImpl(withBasePath(`/puzzles/${league}/${date}.json`), {
     cache: "no-store",
   });
   if (res.status === 404) return null;
@@ -247,7 +249,7 @@ export async function fetchPuzzleIndex(
   fetchImpl: typeof fetch = fetch,
 ): Promise<PuzzleIndex | null> {
   try {
-    const res = await fetchImpl(`/puzzles/${league}/index.json`, {
+    const res = await fetchImpl(withBasePath(`/puzzles/${league}/index.json`), {
       cache: "no-store",
     });
     if (!res.ok) return null;

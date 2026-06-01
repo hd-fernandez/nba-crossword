@@ -8,6 +8,7 @@
 
 import { parseBeePuzzle, type BeePuzzle, type BeeLeague } from "./bee";
 import { todayInEastern } from "./puzzle";
+import { withBasePath } from "./base-path";
 import { z } from "zod";
 
 export async function fetchBee(
@@ -15,7 +16,7 @@ export async function fetchBee(
   date: string = todayInEastern(),
   fetchImpl: typeof fetch = fetch,
 ): Promise<BeePuzzle | null> {
-  const res = await fetchImpl(`/puzzles/${league}/bee/${date}.json`, {
+  const res = await fetchImpl(withBasePath(`/puzzles/${league}/bee/${date}.json`), {
     cache: "no-store",
   });
   if (res.status === 404) return null;
@@ -50,7 +51,7 @@ async function fetchBeeIndexDates(
   fetchImpl: typeof fetch,
 ): Promise<string[]> {
   try {
-    const res = await fetchImpl(`/puzzles/${league}/bee/index.json`, {
+    const res = await fetchImpl(withBasePath(`/puzzles/${league}/bee/index.json`), {
       cache: "no-store",
     });
     if (!res.ok) return [];

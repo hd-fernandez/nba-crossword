@@ -14,6 +14,8 @@
  *     app down. The user still gets a working web page.
  */
 
+import { BASE_PATH } from "./base-path";
+
 export type SwRegisterResult =
   | { kind: "registered"; registration: ServiceWorkerRegistration }
   | { kind: "skipped"; reason: string }
@@ -43,8 +45,12 @@ export async function registerServiceWorker(): Promise<SwRegisterResult> {
   }
 
   try {
-    const registration = await navigator.serviceWorker.register("/sw.js", {
-      scope: "/",
+    // Under a subpath deploy (GitHub Pages) both the SW URL and its scope are
+    // prefixed with BASE_PATH; at the root they're "/sw.js" + "/" as before.
+    // The SW can only control URLs at or below its own path, so the scope must
+    // match the prefix the app is actually served from.
+    const registration = await navigator.serviceWorker.register(`${BASE_PATH}/sw.js`, {
+      scope: `${BASE_PATH}/`,
       // `updateViaCache: "none"` makes the browser bypass HTTP caches when
       // checking for an updated `sw.js`, so a deploy with a bumped
       // CACHE_VERSION rolls out promptly. Vercel headers also force

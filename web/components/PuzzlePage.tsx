@@ -9,6 +9,7 @@ import { LeagueToggle } from "@/components/LeagueToggle";
 import { StreakBadge } from "@/components/StreakBadge";
 import { Timer } from "@/components/Timer";
 import { configFor, otherLeague } from "@/lib/league";
+import { withBasePath } from "@/lib/base-path";
 import {
   fetchLatestPuzzle,
   fetchPuzzle,
@@ -149,7 +150,7 @@ export function PuzzlePage({ league }: PuzzlePageProps) {
         style={{
           position: "fixed",
           inset: 0,
-          backgroundImage: `url(${cfg.heroPhoto})`,
+          backgroundImage: `url(${withBasePath(cfg.heroPhoto)})`,
           backgroundSize: "cover",
           backgroundPosition: "center",
           zIndex: -2,

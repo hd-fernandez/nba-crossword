@@ -1,0 +1,67 @@
+name: Deploy to GitHub Pages
+
+# Builds the Next.js app as a fully static export and publishes it to
+# GitHub Pages. The repo is served from a subpath
+# (https://hd-fernandez.github.io/nba-crossword/), so the build sets
+# NEXT_PUBLIC_BASE_PATH to that subpath — every absolute URL (puzzles,
+# assets, service worker, manifest) shifts to match. A root deploy
+# (Vercel / nbamini.app) just omits these env vars.
+on:
+  push:
+    branches: [main]
+  # Lets the daily-puzzle cron — or you — trigger a re-publish by hand.
+  workflow_dispatch:
+
+# Allow the workflow to publish Pages via OIDC; read the repo contents.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deploy at a time. Don't cancel an in-progress publish — let it finish so
+# Pages is never left mid-swap.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    env:
+      NEXT_PUBLIC_BASE_PATH: /nba-crossword
+      NEXT_OUTPUT_EXPORT: "1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      # `npm ci` runs the prebuild hook (sync-puzzles.mjs), copying repo-root
+      # puzzles/ into web/public/ and writing the index.json manifests.
+      - run: npm ci
+
+      - run: npm run build
+
+      # Static export lands in web/out. `.nojekyll` stops GitHub Pages from
+      # running Jekyll, which would strip Next's `_next/` underscore dirs.
+      - run: touch out/.nojekyll
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: web/out
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

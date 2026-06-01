@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { Fraunces, Inter } from "next/font/google";
 
 import { SwRegister } from "@/components/SwRegister";
+import { withBasePath } from "@/lib/base-path";
 
 /**
  * Typography:
@@ -31,10 +32,10 @@ export const metadata: Metadata = {
   description:
     "A daily basketball mini crossword. Clues refresh every morning from yesterday's NBA & WNBA discourse.",
   applicationName: "The NBA Mini",
-  manifest: "/manifest.webmanifest",
+  manifest: withBasePath("/manifest.webmanifest"),
   icons: {
-    icon: [{ url: "/icons/icon.svg", type: "image/svg+xml" }],
-    apple: [{ url: "/icons/icon.svg", type: "image/svg+xml" }],
+    icon: [{ url: withBasePath("/icons/icon.svg"), type: "image/svg+xml" }],
+    apple: [{ url: withBasePath("/icons/icon.svg"), type: "image/svg+xml" }],
   },
   appleWebApp: {
     capable: true,
