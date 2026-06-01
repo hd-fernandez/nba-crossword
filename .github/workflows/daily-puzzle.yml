@@ -99,6 +99,28 @@ jobs:
             echo "::endgroup::"
           done
 
+      - name: Generate today's Spelling Bees (both leagues)
+        working-directory: pipeline
+        run: |
+          set -euo pipefail
+          # The Bee is corpus-driven, not news-driven: no games, no LLM, no
+          # look-back. It just needs a date (seed) and the names corpus, so it
+          # runs independently of the crossword and of Bedrock. Writes to
+          # ../puzzles/<league>/bee/<date>.json.
+          ARGS=()
+          if [ -n "${{ inputs.date }}" ]; then
+            ARGS+=(--date "${{ inputs.date }}")
+          fi
+          if [ "${{ inputs.force }}" = "true" ]; then
+            ARGS+=(--force)
+          fi
+          for league in nba wnba; do
+            echo "::group::bee ${league}"
+            uv run python -m nba_mini.bee.generate_cli \
+              --league "${league}" --out ../puzzles "${ARGS[@]}"
+            echo "::endgroup::"
+          done
+
       - name: Commit and push if new puzzles were written
         run: |
           set -euo pipefail
