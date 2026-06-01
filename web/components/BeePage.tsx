@@ -13,7 +13,7 @@ import {
   type BeePuzzle,
   type TierKey,
 } from "@/lib/bee";
-import { fetchBee } from "@/lib/bee-fetch";
+import { fetchLatestBee } from "@/lib/bee-fetch";
 import {
   beeReducer,
   initialBeeState,
@@ -27,9 +27,20 @@ import { todayInEastern } from "@/lib/puzzle";
 
 type BeeFetchStatus =
   | { kind: "loading" }
-  | { kind: "ready"; puzzle: BeePuzzle }
+  | { kind: "ready"; puzzle: BeePuzzle; isToday: boolean }
   | { kind: "no-bee" }
   | { kind: "error"; message: string };
+
+/** Format an ISO date (YYYY-MM-DD) as e.g. "May 29", UTC-anchored. */
+function prettyBeeDate(iso: string): string {
+  const [y, m, d] = iso.split("-").map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  return new Intl.DateTimeFormat("en-US", {
+    month: "long",
+    day: "numeric",
+    timeZone: "UTC",
+  }).format(dt);
+}
 
 interface BeePageProps {
   league: BeeLeague;
@@ -62,10 +73,18 @@ export function BeePage({ league }: BeePageProps) {
 
   useEffect(() => {
     let cancelled = false;
-    fetchBee(league)
-      .then((puzzle) => {
+    fetchLatestBee(league)
+      .then((resolved) => {
         if (cancelled) return;
-        setStatus(puzzle ? { kind: "ready", puzzle } : { kind: "no-bee" });
+        setStatus(
+          resolved
+            ? {
+                kind: "ready",
+                puzzle: resolved.puzzle,
+                isToday: resolved.isToday,
+              }
+            : { kind: "no-bee" },
+        );
       })
       .catch((err: unknown) => {
         if (cancelled) return;
@@ -213,7 +232,27 @@ export function BeePage({ league }: BeePageProps) {
           )}
 
           {status.kind === "ready" && (
-            <BeeBoard puzzle={status.puzzle} accent={accent} />
+            <>
+              {!status.isToday && (
+                <div
+                  role="status"
+                  data-testid="bee-fallback-note"
+                  style={{
+                    marginBottom: 12,
+                    padding: "10px 14px",
+                    background: "rgba(255,253,246,0.92)",
+                    borderRadius: 10,
+                    color: "#5a5a55",
+                    fontSize: 12.5,
+                    lineHeight: 1.4,
+                  }}
+                >
+                  No new Bee for today yet — showing the most recent one
+                  ({prettyBeeDate(status.puzzle.date)}).
+                </div>
+              )}
+              <BeeBoard puzzle={status.puzzle} accent={accent} />
+            </>
           )}
 
           <footer

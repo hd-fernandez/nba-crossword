@@ -31,3 +31,6 @@ web/public/puzzles/
 
 # uv lockfile is committed; uv build cache is not
 .uv-cache/
+
+# TypeScript incremental build cache
+web/tsconfig.tsbuildinfo

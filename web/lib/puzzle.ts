@@ -222,6 +222,78 @@ export async function fetchPuzzle(
 }
 
 /**
+ * The puzzle index written by `scripts/sync-puzzles.mjs`. Lists every
+ * available puzzle date for a league, newest first, plus the latest.
+ */
+const PuzzleIndexSchema = z.object({
+  dates: z.array(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)),
+  latest: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable(),
+});
+export type PuzzleIndex = z.infer<typeof PuzzleIndexSchema>;
+
+/**
+ * Read a league's puzzle index. Returns null if the index is missing or
+ * malformed — callers treat that as "no fallback available."
+ */
+export async function fetchPuzzleIndex(
+  league: League,
+  fetchImpl: typeof fetch = fetch,
+): Promise<PuzzleIndex | null> {
+  try {
+    const res = await fetchImpl(`/puzzles/${league}/index.json`, {
+      cache: "no-store",
+    });
+    if (!res.ok) return null;
+    const parsed = PuzzleIndexSchema.safeParse(await res.json());
+    return parsed.success ? parsed.data : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * The result of resolving which puzzle to show: the puzzle itself, plus
+ * whether it's actually today's or a fallback to the most recent one.
+ */
+export interface ResolvedPuzzle {
+  puzzle: Puzzle;
+  date: string;
+  isToday: boolean;
+}
+
+/**
+ * Fetch the puzzle to display for a league: today's if it exists, otherwise
+ * the most recent available puzzle (per the index). Returns null only when
+ * the league has no puzzles at all.
+ *
+ * This is what keeps the app from showing a dead "no puzzle today" page when
+ * the daily generator hasn't produced today's puzzle yet (off-day, cron lag,
+ * or — during local demos — no live cron at all). Today always wins when
+ * present; the fallback is the graceful degradation.
+ */
+export async function fetchLatestPuzzle(
+  league: League,
+  today: string = todayInEastern(),
+  fetchImpl: typeof fetch = fetch,
+): Promise<ResolvedPuzzle | null> {
+  const todays = await fetchPuzzle(league, today, fetchImpl);
+  if (todays) return { puzzle: todays, date: today, isToday: true };
+
+  const index = await fetchPuzzleIndex(league, fetchImpl);
+  // Pick the newest date that isn't in the future relative to `today`. A
+  // future-dated puzzle (shouldn't happen, but be defensive) is not "latest."
+  const fallbackDate = index?.dates
+    .filter((d) => d <= today)
+    .sort()
+    .at(-1);
+  if (!fallbackDate) return null;
+
+  const fallback = await fetchPuzzle(league, fallbackDate, fetchImpl);
+  if (!fallback) return null;
+  return { puzzle: fallback, date: fallbackDate, isToday: false };
+}
+
+/**
  * Back-compat shim — the v1 page-level fetch was league-naive. New callers
  * should use `fetchPuzzle(league, date)` directly. This wrapper defaults to
  * NBA so existing tests / call sites keep working through the v2 transition.

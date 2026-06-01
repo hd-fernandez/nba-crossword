@@ -31,6 +31,16 @@ export async function registerServiceWorker(): Promise<SwRegisterResult> {
   if (!window.isSecureContext) {
     return { kind: "skipped", reason: "insecure-context" };
   }
+  // Never run the service worker in development. A cache-first SW serves the
+  // stale built shell instead of the dev server's fresh bundle, which forces a
+  // hard reload (cmd+shift+R) on every load. Worse, a SW installed during a
+  // *previous* prod-mode session lingers in the browser and keeps doing this
+  // even after we stop registering — so in dev we actively unregister any
+  // existing SW and wipe its caches, self-healing the developer's browser.
+  if (process.env.NODE_ENV !== "production") {
+    await unregisterServiceWorkers();
+    return { kind: "skipped", reason: "dev-mode" };
+  }
 
   try {
     const registration = await navigator.serviceWorker.register("/sw.js", {
@@ -46,5 +56,24 @@ export async function registerServiceWorker(): Promise<SwRegisterResult> {
     // eslint-disable-next-line no-console
     console.warn("[sw-register] registration failed", error);
     return { kind: "error", error };
+  }
+}
+
+/**
+ * Tear down any service worker this origin previously installed, plus the
+ * caches it created. Used in development so a SW from an earlier prod-mode
+ * run can't keep serving a stale shell. Best-effort: never throws.
+ */
+async function unregisterServiceWorkers(): Promise<void> {
+  try {
+    const registrations = await navigator.serviceWorker.getRegistrations();
+    await Promise.all(registrations.map((r) => r.unregister()));
+    if ("caches" in window) {
+      const keys = await caches.keys();
+      await Promise.all(keys.map((key) => caches.delete(key)));
+    }
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.warn("[sw-register] dev cleanup failed", error);
   }
 }

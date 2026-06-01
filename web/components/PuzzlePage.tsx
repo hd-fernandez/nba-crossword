@@ -10,6 +10,7 @@ import { StreakBadge } from "@/components/StreakBadge";
 import { Timer } from "@/components/Timer";
 import { configFor, otherLeague } from "@/lib/league";
 import {
+  fetchLatestPuzzle,
   fetchPuzzle,
   todayInEastern,
   type League,
@@ -25,12 +26,24 @@ import { getDisplayStreak, getStreak, markOffDay } from "@/lib/storage";
 
 type FetchStatus =
   | { kind: "loading" }
-  | { kind: "ready"; puzzle: Puzzle }
+  | { kind: "ready"; puzzle: Puzzle; isToday: boolean }
   | { kind: "no-puzzle" }
   | { kind: "error"; message: string };
 
 interface PuzzlePageProps {
   league: League;
+}
+
+/** Format an ISO puzzle date (YYYY-MM-DD) as e.g. "May 29". UTC-anchored so
+ * the calendar date never shifts under the viewer's local timezone. */
+function prettyDate(iso: string): string {
+  const [y, m, d] = iso.split("-").map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  return new Intl.DateTimeFormat("en-US", {
+    month: "long",
+    day: "numeric",
+    timeZone: "UTC",
+  }).format(dt);
 }
 
 /**
@@ -57,15 +70,27 @@ export function PuzzlePage({ league }: PuzzlePageProps) {
     setStreak(getDisplayStreak(league, t));
   }, [league]);
 
-  // Fetch this league's puzzle.
+  // Fetch this league's puzzle: today's if it exists, else fall back to the
+  // most recent one so the app never shows a dead page when real puzzles
+  // exist (off-day, cron lag, or a demo with no live cron).
   useEffect(() => {
     if (!today) return;
     let cancelled = false;
-    fetchPuzzle(league)
-      .then((puzzle) => {
+    fetchLatestPuzzle(league, today)
+      .then((resolved) => {
         if (cancelled) return;
-        if (puzzle) {
-          setStatus({ kind: "ready", puzzle });
+        if (resolved) {
+          // Only the genuine absence of *today's* puzzle counts as an off-day
+          // for streak purposes; serving a fallback doesn't break the streak.
+          if (!resolved.isToday) {
+            markOffDay(league, today);
+            setStreak(getDisplayStreak(league, today));
+          }
+          setStatus({
+            kind: "ready",
+            puzzle: resolved.puzzle,
+            isToday: resolved.isToday,
+          });
         } else {
           markOffDay(league, today);
           setStreak(getDisplayStreak(league, today));
@@ -238,24 +263,46 @@ export function PuzzlePage({ league }: PuzzlePageProps) {
           )}
 
           {status.kind === "ready" && (
-            <div
-              style={{
-                background: "rgba(255, 253, 246, 0.97)",
-                borderRadius: 14,
-                padding: 20,
-                boxShadow: "0 16px 50px rgba(0,0,0,0.4)",
-                color: "#1a1a1a",
-              }}
-            >
-              <PuzzleView
-                puzzle={status.puzzle}
-                accent={cfg.theme.accent}
-                accentShadow={cfg.theme.accentShadow}
-                onCompletion={() => {
-                  if (today) setStreak(getStreak(league, today));
+            <>
+              {!status.isToday && (
+                <div
+                  role="status"
+                  data-testid="fallback-note"
+                  style={{
+                    marginBottom: 12,
+                    padding: "10px 14px",
+                    background: "rgba(255, 253, 246, 0.92)",
+                    borderRadius: 10,
+                    color: "#5a5a55",
+                    fontSize: 12.5,
+                    lineHeight: 1.4,
+                  }}
+                >
+                  No new puzzle for today yet — showing the most recent one
+                  ({prettyDate(status.puzzle.date)}).
+                </div>
+              )}
+              <div
+                style={{
+                  background: "rgba(255, 253, 246, 0.97)",
+                  borderRadius: 14,
+                  padding: 20,
+                  boxShadow: "0 16px 50px rgba(0,0,0,0.4)",
+                  color: "#1a1a1a",
                 }}
-              />
-            </div>
+              >
+                <PuzzleView
+                  puzzle={status.puzzle}
+                  accent={cfg.theme.accent}
+                  accentShadow={cfg.theme.accentShadow}
+                  onCompletion={() => {
+                    if (today && status.isToday) {
+                      setStreak(getStreak(league, today));
+                    }
+                  }}
+                />
+              </div>
+            </>
           )}
 
           <footer
