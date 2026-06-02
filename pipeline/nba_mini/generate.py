@@ -148,10 +148,13 @@ _SUBREDDITS: dict[League, list[str]] = {
     "wnba": ["wnba"],
 }
 
-# How many days of recent games + discourse to pull into the pool. Wider than a
-# single night so the puzzle reflects current events, not just last night's
-# slate. See compound-engineering/solutions for the rationale.
-RECENCY_WINDOW_DAYS = 3
+# How many days of recent games + discourse to pull into the pool. A full week
+# (not just last night) so the puzzle reflects current events and — critically —
+# has enough *distinct* storylines that clues don't all reach for the same one
+# (the "thobe ×4" repetition problem). 7 is the natural ceiling of Reddit's
+# top-of-week feed; going past it (the reddit ingest auto-switches to the
+# top-of-month feed at >7) trades freshness for volume, so we stop at a week.
+RECENCY_WINDOW_DAYS = 7
 
 
 class ClueGenerator(Protocol):

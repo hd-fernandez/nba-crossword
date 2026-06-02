@@ -208,6 +208,26 @@ def reddit_rss_url(subreddit: str = "nba", *, window: str = "day") -> str:
     return f"https://www.reddit.com/r/{subreddit}/top/.rss?t={window}"
 
 
+def _rss_window_for_days(window_days: int) -> str:
+    """Pick the smallest Reddit ``t=`` feed that covers ``window_days``.
+
+    Reddit's top feed is bucketed (``day`` | ``week`` | ``month`` | ...), and a
+    given bucket only *contains* roughly that many days of posts. The
+    multi-day digest then filters by exact timestamp, so the bucket only needs
+    to be large enough to *reach back* far enough — picking a bigger bucket than
+    necessary just adds older noise the filter discards.
+
+    - ``<= 1`` day  -> ``day``
+    - ``<= 7`` days -> ``week``
+    - otherwise     -> ``month`` (covers up to ~31 days; the filter trims it)
+    """
+    if window_days <= 1:
+        return "day"
+    if window_days <= 7:
+        return "week"
+    return "month"
+
+
 def fetch_yesterday_discourse_rss(
     today: date,
     *,
@@ -323,7 +343,8 @@ def fetch_recent_discourse_rss(
             else:
                 resolved_cache = _resolve_cache_dir(cache_dir, most_recent_iso)
                 rss_text = _live_rss_fetch(
-                    reddit_rss_url(sub, window="week"), resolved_cache
+                    reddit_rss_url(sub, window=_rss_window_for_days(window_days)),
+                    resolved_cache,
                 )
             entries = _parse_rss_entries(rss_text)
         except RedditIngestError as e:

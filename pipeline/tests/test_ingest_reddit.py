@@ -439,6 +439,18 @@ def test_reddit_rss_url_window_param() -> None:
     )
 
 
+def test_rss_window_for_days_picks_smallest_covering_bucket() -> None:
+    from nba_mini.ingest.reddit import _rss_window_for_days
+
+    assert _rss_window_for_days(1) == "day"
+    assert _rss_window_for_days(3) == "week"
+    assert _rss_window_for_days(7) == "week"
+    # Past a week we must switch to the month feed, or the timestamp filter
+    # would silently cap the window at ~7 days of available posts.
+    assert _rss_window_for_days(8) == "month"
+    assert _rss_window_for_days(10) == "month"
+
+
 # ---------------------------------------------------------------------------
 # Multi-subreddit, multi-day recency digest
 # ---------------------------------------------------------------------------
