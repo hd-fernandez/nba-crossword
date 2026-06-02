@@ -554,11 +554,39 @@ def test_prompt_uses_correct_voice_template() -> None:
     # each markdown file's "Voice:" header.
     voice_marker = {
         "wry": "Voice: wry NYT",
-        "discoursey": "Voice: online / discoursey",
+        "discoursey": "Voice: cultural / discourse-aware",
         "factual": "Voice: factual",
     }
     for entry, prompt in zip(out, seen_prompts, strict=True):
         assert voice_marker[entry.voice] in prompt
+
+
+def test_prior_clues_are_threaded_into_later_prompts() -> None:
+    """Each clue prompt after the first must list the clues already written.
+
+    This is the variety mechanism: the model is shown prior clues so it can
+    pick a different angle and not repeat one storyline across the puzzle.
+    """
+    seen_prompts: list[str] = []
+    counter = {"n": 0}
+
+    def capture(prompt: str) -> str:
+        seen_prompts.append(prompt)
+        counter["n"] += 1
+        return f"Distinct clue number {counter['n']}."
+
+    entries = _six_entries()
+    llm = FakeClueLLM(capture)
+    generate_clues(entries, _basic_context(), llm=llm)
+
+    # First prompt: no prior clues yet -> the neutral placeholder.
+    assert "(none yet" in seen_prompts[0]
+    # The last prompt must contain the text of an earlier clue, proving the
+    # accumulated clues are funneled forward.
+    assert "Distinct clue number 1." in seen_prompts[-1]
+    # And the "do not repeat" instruction is present in every clue prompt.
+    for prompt in seen_prompts:
+        assert "DO NOT REPEAT their angle" in prompt
 
 
 def test_reddit_digest_relevant_post_is_included_in_prompt() -> None:

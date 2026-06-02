@@ -312,9 +312,15 @@ def generate_clues(
 
     voices = _assign_voices(len(entries), seed=context.seed)
     out: list[Entry] = []
+    # Accumulate the clues we've already written so each new clue can be told
+    # to pick a *different* angle. This is what stops every clue in a puzzle
+    # from reaching for the same salient storyline (the "thobe ×4" problem):
+    # clues are generated sequentially and each sees its predecessors.
+    prior: list[tuple[str, str]] = []  # (answer, clue) in generation order
     for entry, voice in zip(entries, voices, strict=True):
-        clue = _generate_one_clue(entry, voice, context, chosen_llm)
+        clue = _generate_one_clue(entry, voice, context, chosen_llm, prior_clues=prior)
         out.append(entry.model_copy(update={"clue": clue, "voice": voice}))
+        prior.append((entry.answer, clue))
     return out
 
 
@@ -365,16 +371,23 @@ def _generate_one_clue(
     voice: Voice,
     context: GenerationContext,
     llm: ClueLLM,
+    *,
+    prior_clues: list[tuple[str, str]] | None = None,
 ) -> str:
     """Run the prompt-validate-retry loop for a single entry. Always returns a clue.
 
     Outage of the LLM itself bubbles out as `ClueLLMOutageError`. Bad clue
     content (length / contains-answer) cycles into a retry; after exhausting
     `MAX_ATTEMPTS`, we return a templated fallback so the puzzle ships.
+
+    ``prior_clues`` is the list of ``(answer, clue)`` pairs already written for
+    this puzzle, in order. It's rendered into the prompt so the model can pick a
+    distinct angle and avoid repeating a storyline across the puzzle.
     """
     template = _load_prompt_template(voice)
     discourse_slice = _slice_discourse_for_entry(entry, context.reddit_digest)
     grounding_fact = _grounding_fact_for_entry(entry, context.games_digest)
+    prior_block = _format_prior_clues(prior_clues)
 
     last_attempt: str | None = None
     last_reason: str | None = None
@@ -385,6 +398,7 @@ def _generate_one_clue(
             season_context=context.season_context_text.strip(),
             discourse_slice=discourse_slice or "(no specific discourse anchor for this entry)",
             grounding_fact=grounding_fact or "(none)",
+            prior_clues=prior_block,
             answer=entry.answer,
             retry_note=retry_note,
         )
@@ -516,6 +530,20 @@ def _load_prompt_template(voice: Voice) -> str:
         return path.read_text(encoding="utf-8")
     except FileNotFoundError as exc:
         raise PromptTemplateError(f"prompt file not found: {path}") from exc
+
+
+def _format_prior_clues(prior_clues: list[tuple[str, str]] | None) -> str:
+    """Render the already-written clues as a bullet list for the prompt.
+
+    The clue-writer uses this to avoid repeating an angle across the puzzle.
+    We deliberately *do* show the prior answers — they're already visible in
+    the solved puzzle, so there's no leak — alongside each clue, so the model
+    can see which storylines are spent. Returns a neutral placeholder when this
+    is the first clue (or when prior clues aren't being threaded through).
+    """
+    if not prior_clues:
+        return "(none yet — this is the first clue in the puzzle)"
+    return "\n".join(f"- {answer}: {clue}" for answer, clue in prior_clues)
 
 
 def _format_retry_note(prev: str | None, reason: str | None) -> str:
