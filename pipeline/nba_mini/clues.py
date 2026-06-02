@@ -84,6 +84,7 @@ SOFT_LENGTH_LIMIT = 80   # warn-only target the prompt asks the model to hit
 # Retry budgets.
 MAX_ATTEMPTS = 3          # total prompt attempts per entry before fallback
 LLM_OUTAGE_RETRIES = 2    # retries on raw LLM exception (in addition to first try)
+MAX_CRITIC_ROUNDS = 2     # critic-driven regeneration passes over the puzzle
 
 PROMPTS_DIR = Path(__file__).resolve().parent / "prompts"
 PROMPT_FILES: dict[Voice, str] = {
@@ -151,6 +152,25 @@ class ClueLLM(Protocol):
     """
 
     def complete(self, prompt: str) -> str: ...
+
+
+class ClueCritic(Protocol):
+    """Structural type for the optional clue quality gate.
+
+    Given the clued entries and the generation context, return a mapping of
+    entry-id -> a verdict object exposing ``passed: bool`` and (on failure)
+    ``issue``/``reason`` strings. The critic is **self-contained**: it owns its
+    own LLM client (the judging call needs a much larger token budget than a
+    single short clue, so it must not reuse the 256-token generation client).
+    Production binds ``nba_mini.critic.critique_clues`` with a dedicated client.
+    We keep the verdict type structural (``object``) here to avoid importing the
+    critic module into ``clues`` — the critic depends on ``clues``, not the
+    other way around.
+    """
+
+    def __call__(
+        self, entries: list[Entry], context: GenerationContext
+    ) -> dict[str, object]: ...
 
 
 @dataclass
@@ -283,6 +303,7 @@ def generate_clues(
     context: GenerationContext,
     *,
     llm: ClueLLM | None = None,
+    critic: ClueCritic | None = None,
 ) -> list[Entry]:
     """Generate a clue + assign a voice for each entry.
 
@@ -294,6 +315,12 @@ def generate_clues(
         llm: Optional injected LLM client. Tests pass a `FakeClueLLM`. If
             omitted, the default `AnthropicClueLLM(model=context.model)` is
             built and used.
+        critic: Optional quality gate (``nba_mini.critic.critique_clues``).
+            When provided, the finished puzzle is judged against the rubric and
+            failing clues are regenerated for up to ``MAX_CRITIC_ROUNDS`` rounds
+            with the critic's reason as guidance. Clues that still fail at the
+            end ship anyway (never block a puzzle) and are logged. When
+            ``None`` (the default), behavior is unchanged — a single pass.
 
     Returns:
         A new list of `Entry` with `clue` and `voice` populated. Length and
@@ -321,7 +348,84 @@ def generate_clues(
         clue = _generate_one_clue(entry, voice, context, chosen_llm, prior_clues=prior)
         out.append(entry.model_copy(update={"clue": clue, "voice": voice}))
         prior.append((entry.answer, clue))
+
+    if critic is not None:
+        out = _apply_critic_rounds(out, context, chosen_llm, critic)
+
     return out
+
+
+def _apply_critic_rounds(
+    entries: list[Entry],
+    context: GenerationContext,
+    llm: ClueLLM,
+    critic: ClueCritic,
+) -> list[Entry]:
+    """Judge the puzzle and regenerate failing clues for a bounded # of rounds.
+
+    Each round: run the critic over the *current* clues; for every entry it
+    fails, regenerate that one clue with the critic's reason as guidance and
+    the other (passing) clues as the prior-clues context, so a regenerated clue
+    still avoids repeating its neighbors. Stops when the critic passes
+    everything or the round budget is spent. Never raises on critic trouble —
+    ``critique_clues`` fails open — so a flaky critic just means fewer fixes,
+    never a blocked puzzle.
+    """
+    current = list(entries)
+    for round_num in range(1, MAX_CRITIC_ROUNDS + 1):
+        verdicts = critic(current, context)
+        failing = [e for e in current if not _verdict_passed(verdicts.get(e.id))]
+        if not failing:
+            logger.info("critic round %d: all clues passed", round_num)
+            return current
+
+        logger.info(
+            "critic round %d: %d clue(s) failed: %s",
+            round_num,
+            len(failing),
+            [e.id for e in failing],
+        )
+        by_id = {e.id: e for e in current}
+        for entry in failing:
+            verdict = verdicts.get(entry.id)
+            note = _verdict_note(verdict)
+            # Prior context = every *other* clue, so the regen avoids repeating
+            # neighbors while fixing this one.
+            prior = [(e.answer, e.clue) for e in current if e.id != entry.id]
+            new_clue = _generate_one_clue(
+                entry, entry.voice, context, llm, prior_clues=prior, critic_note=note
+            )
+            by_id[entry.id] = entry.model_copy(update={"clue": new_clue})
+        current = [by_id[e.id] for e in current]
+
+    # Budget spent — log whatever still fails and ship it anyway.
+    final = critic(current, context)
+    still_failing = [e.id for e in current if not _verdict_passed(final.get(e.id))]
+    if still_failing:
+        logger.warning(
+            "critic budget exhausted; shipping %d clue(s) that still fail: %s",
+            len(still_failing),
+            still_failing,
+        )
+    return current
+
+
+def _verdict_passed(verdict: object | None) -> bool:
+    """True if there's no verdict or the verdict says passed. Fails open."""
+    if verdict is None:
+        return True
+    return bool(getattr(verdict, "passed", True))
+
+
+def _verdict_note(verdict: object | None) -> str | None:
+    """Extract a human fix-it note from a verdict, if any."""
+    if verdict is None:
+        return None
+    reason = getattr(verdict, "reason", None)
+    issue = getattr(verdict, "issue", None)
+    if reason and issue:
+        return f"[{issue}] {reason}"
+    return reason or None
 
 
 # ---------------------------------------------------------------------------
@@ -373,6 +477,7 @@ def _generate_one_clue(
     llm: ClueLLM,
     *,
     prior_clues: list[tuple[str, str]] | None = None,
+    critic_note: str | None = None,
 ) -> str:
     """Run the prompt-validate-retry loop for a single entry. Always returns a clue.
 
@@ -383,6 +488,10 @@ def _generate_one_clue(
     ``prior_clues`` is the list of ``(answer, clue)`` pairs already written for
     this puzzle, in order. It's rendered into the prompt so the model can pick a
     distinct angle and avoid repeating a storyline across the puzzle.
+
+    ``critic_note`` carries an editor's reason from a prior critic round (e.g.
+    "ADOBE's clue forces an NBA tie-in; clue it as a brick"). It's folded into
+    the retry-note slot so the regenerated clue addresses that specific defect.
     """
     template = _load_prompt_template(voice)
     discourse_slice = _slice_discourse_for_entry(entry, context.reddit_digest)
@@ -393,7 +502,7 @@ def _generate_one_clue(
     last_reason: str | None = None
 
     for attempt in range(1, MAX_ATTEMPTS + 1):
-        retry_note = _format_retry_note(last_attempt, last_reason)
+        retry_note = _format_retry_note(last_attempt, last_reason, critic_note=critic_note)
         prompt = template.format(
             season_context=context.season_context_text.strip(),
             discourse_slice=discourse_slice or "(no specific discourse anchor for this entry)",
@@ -546,15 +655,25 @@ def _format_prior_clues(prior_clues: list[tuple[str, str]] | None) -> str:
     return "\n".join(f"- {answer}: {clue}" for answer, clue in prior_clues)
 
 
-def _format_retry_note(prev: str | None, reason: str | None) -> str:
-    if prev is None or reason is None:
+def _format_retry_note(
+    prev: str | None, reason: str | None, *, critic_note: str | None = None
+) -> str:
+    parts: list[str] = []
+    if prev is not None and reason is not None:
+        parts.append(
+            f"Your previous attempt was rejected because it {reason}.\n"
+            f"Previous attempt: {prev!r}\n"
+            "Please write a new clue that fixes that specific problem."
+        )
+    if critic_note:
+        parts.append(
+            "The editor reviewed an earlier version of this clue and asked for a "
+            f"fix: {critic_note}\n"
+            "Write a new clue that addresses the editor's note."
+        )
+    if not parts:
         return ""
-    return (
-        "## Retry note\n\n"
-        f"Your previous attempt was rejected because it {reason}.\n"
-        f"Previous attempt: {prev!r}\n"
-        "Please write a new clue that fixes that specific problem.\n"
-    )
+    return "## Retry note\n\n" + "\n\n".join(parts) + "\n"
 
 
 def _slice_discourse_for_entry(entry: Entry, digest: RedditDigest | None) -> str:
@@ -640,6 +759,7 @@ __all__ = [
     "AnthropicClueLLM",
     "BedrockClueLLM",
     "BEDROCK_DEFAULT_MODEL",
+    "ClueCritic",
     "ClueGenerationError",
     "ClueLLM",
     "ClueLLMOutageError",
@@ -647,6 +767,7 @@ __all__ = [
     "GenerationContext",
     "HARD_LENGTH_LIMIT",
     "MAX_ATTEMPTS",
+    "MAX_CRITIC_ROUNDS",
     "PromptTemplateError",
     "SOFT_LENGTH_LIMIT",
     "VOICE_TARGETS",

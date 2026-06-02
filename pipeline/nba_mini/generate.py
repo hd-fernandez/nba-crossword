@@ -64,6 +64,7 @@ from nba_mini.clues import (
     PromptTemplateError,
     generate_clues,
 )
+from nba_mini.critic import build_critic_llm, critique_clues
 from nba_mini.grid import (
     GridFillError,
     InvalidCandidateError,
@@ -231,6 +232,43 @@ class Deps:
                 f"unknown LLM backend {backend!r}; expected 'anthropic' or 'bedrock'"
             )
         subreddits = _SUBREDDITS[league]
+
+        # Clue generator with the quality gate wired in. The critic judges the
+        # finished puzzle against the rubric and regenerates failing clues
+        # (bounded rounds, ship-best-and-log). Disable with NBA_MINI_NO_CRITIC=1
+        # for a cheaper/faster run (e.g. local debugging) — the daily cron keeps
+        # it on by default. ``critique_clues`` fails open, so an LLM hiccup in
+        # the critic never blocks the puzzle.
+        critic_enabled = os.environ.get("NBA_MINI_NO_CRITIC", "").lower() not in (
+            "1",
+            "true",
+            "yes",
+        )
+
+        # The critic needs its own client with a large token budget — judging a
+        # whole puzzle returns a JSON array far bigger than the ~256 tokens that
+        # suffice for one clue. Reusing the generation client truncates the
+        # critic's response mid-JSON, which fails open and silently disables the
+        # gate. Build a dedicated, self-contained critic instead.
+        clue_critic = None
+        if critic_enabled:
+            critic_llm = build_critic_llm(
+                backend=backend,
+                model=resolved_model,
+                aws_region=os.environ.get("AWS_REGION"),
+            )
+
+            def clue_critic(entries: list[Entry], context: GenerationContext):  # noqa: E731
+                return critique_clues(entries, context, llm=critic_llm)
+
+        def clue_generator(
+            entries: list[Entry],
+            context: GenerationContext,
+            *,
+            llm: ClueLLM | None = None,
+        ) -> list[Entry]:
+            return generate_clues(entries, context, llm=llm, critic=clue_critic)
+
         return Deps(
             season_context=lambda: load_season_context(league=league),
             fetch_reddit=lambda d: fetch_recent_discourse_rss(
@@ -241,7 +279,7 @@ class Deps:
             ),
             load_wordlist=lambda: load_wordlist(),
             llm=llm,
-            clue_generator=generate_clues,
+            clue_generator=clue_generator,
             model=resolved_model,
         )
 
