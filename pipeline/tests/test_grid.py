@@ -191,6 +191,24 @@ def test_filled_slots_are_all_real_words(real_wordlist: list[str]) -> None:
                 )
 
 
+def test_no_duplicate_answers_across_seeds(real_wordlist: list[str]) -> None:
+    """A grid must never repeat the same answer twice (the "STY ×3" bug).
+
+    A fully-crossed slot can occasionally spell a word already placed elsewhere.
+    fill_grid re-rolls the seed to prefer a duplicate-free grid; this sweeps a
+    range of seeds and asserts none of the produced grids contains a repeated
+    answer.
+    """
+    for seed in range(20):
+        for black_squares in (2, 4):
+            grid = fill_grid([], real_wordlist, seed=seed, black_squares=black_squares)
+            words = _grid_slot_words(grid)
+            assert len(words) == len(set(words)), (
+                f"seed={seed} bs={black_squares}: duplicate answer(s) in grid: "
+                f"{[w for w in words if words.count(w) > 1]}"
+            )
+
+
 def test_offwordlist_candidate_does_not_inject_junk_crossings(
     real_wordlist: list[str],
 ) -> None:

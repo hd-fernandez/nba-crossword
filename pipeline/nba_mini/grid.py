@@ -47,6 +47,14 @@ logger = logging.getLogger(__name__)
 # should be a wider wordlist, not a higher cap.
 MAX_BACKTRACK_STEPS = 10_000
 
+# How many consecutive seeds to try in pursuit of a duplicate-free grid. A
+# fully-crossed slot can rarely spell a word placed elsewhere; rather than
+# reject that inside the backtracker (which starves the thin wordlist and fails
+# almost every grid), we re-roll the seed a few times and prefer a clean fill,
+# falling back to the first valid grid if none is clean. Small: duplicates are
+# rare, and each extra seed is a full fill attempt.
+DUPE_RETRY_SEEDS = 5
+
 # Black-square templates, grouped by block count. Each template is a sorted
 # tuple of (row, col) pairs. Templates are vetted to ensure every white cell
 # belongs to one across run AND one down run, each of length >= 2.
@@ -176,11 +184,67 @@ def fill_grid(
     start = seed % len(templates)
     template_order = templates[start:] + templates[:start]
 
+    # Seed-retry for duplicate avoidance: a fully-crossed slot can occasionally
+    # spell a word already placed elsewhere (the "STY ×3" case). Rejecting that
+    # inside the backtracker is too strict (it fails almost every grid against
+    # the current wordlist), so instead we try a few seeds and prefer the first
+    # duplicate-free grid. If none in the budget is clean, we return the first
+    # valid grid anyway — a rare duplicate beats no puzzle. Determinism holds:
+    # same inputs + same seed → same sequence of tried seeds → same result.
+    first_grid: Grid | None = None
+    for attempt in range(DUPE_RETRY_SEEDS):
+        attempt_seed = seed + attempt
+        grid = _fill_with_seed(
+            candidate_answers,
+            wordlist_by_length,
+            template_order,
+            black_squares,
+            attempt_seed,
+        )
+        if grid is None:
+            continue
+        if first_grid is None:
+            first_grid = grid
+        if not _grid_has_duplicate_answers(grid):
+            if attempt > 0:
+                logger.info(
+                    "fill_grid: seed %d had duplicate answers; used seed %d instead",
+                    seed,
+                    attempt_seed,
+                )
+            return grid
+
+    if first_grid is not None:
+        logger.warning(
+            "fill_grid: no duplicate-free fill within %d seeds; shipping a grid "
+            "with a repeated answer (seed=%d)",
+            DUPE_RETRY_SEEDS,
+            seed,
+        )
+        return first_grid
+
+    # No template/seed produced any valid fill, even after dropping candidates.
+    raise GridFillError(
+        "no valid fill found: wordlist too thin for "
+        f"black_squares={black_squares} (templates tried: {len(template_order)})"
+    )
+
+
+def _fill_with_seed(
+    candidate_answers: list[str],
+    wordlist_by_length: dict[int, list[str]],
+    template_order: tuple[tuple[tuple[int, int], ...], ...],
+    black_squares: int,
+    seed: int,
+) -> Grid | None:
+    """One full fill attempt at a fixed seed, dropping candidates as needed.
+
+    Returns the first valid grid found across the template order (progressively
+    dropping the lowest-priority candidate when the full set can't be placed),
+    or None if nothing fills even with no candidates.
+    """
     candidates = list(candidate_answers)
     dropped: list[str] = []
-
-    # Outer loop: progressively drop the lowest-priority candidate until we
-    # either fill or exhaust candidates entirely.
     while True:
         for blocks in template_order:
             block_set: BlockSet = frozenset(blocks)
@@ -202,20 +266,24 @@ def fill_grid(
                 return grid
 
         if not candidates:
-            # Even the wordlist-only fill failed across every template.
-            raise GridFillError(
-                "no valid fill found: wordlist too thin for "
-                f"black_squares={black_squares} (templates tried: "
-                f"{len(template_order)})"
-            )
+            return None
 
-        # Drop the lowest-priority (last) candidate and retry.
         dropped_candidate = candidates.pop()
         dropped.append(dropped_candidate)
         logger.info(
             "fill_grid: candidate %r could not be placed; retrying without it",
             dropped_candidate,
         )
+
+
+def _grid_has_duplicate_answers(grid: Grid) -> bool:
+    """True if any answer (across or down) appears more than once in the grid."""
+    letters = grid_to_letters(grid)
+    words = [
+        "".join(letters[r][c] or "" for r, c in slot.cells)
+        for slot in slots_from_grid(grid)
+    ]
+    return len(words) != len(set(words))
 
 
 # ---------------------------------------------------------------------------
@@ -465,6 +533,12 @@ def _backtrack_fill(state: _FillState) -> bool:
             # crossings have spelled junk (e.g. "CRBCA"), which is a dead end:
             # backtrack so the caller tries a different word in a crossing
             # slot. (This is the guard that keeps non-words out of the grid.)
+            #
+            # NB: we intentionally do *not* reject a fully-crossed slot that
+            # duplicates another answer here. A hard in-fill reject is
+            # incompatible with this single-pass backtracker + current wordlist
+            # — it failed ~100% of grids in testing. Duplicate answers are rare
+            # and handled as a post-fill seed retry in ``fill_grid`` instead.
             if pattern not in state.valid_by_length.get(slot.length, ()):
                 return False
             continue
