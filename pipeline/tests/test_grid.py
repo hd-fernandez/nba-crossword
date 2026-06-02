@@ -158,6 +158,65 @@ def test_different_seeds_can_produce_different_grids(real_wordlist: list[str]) -
 
 
 # ---------------------------------------------------------------------------
+# Real-word fill guard (no junk crossings)
+# ---------------------------------------------------------------------------
+
+
+def _grid_slot_words(grid: Grid) -> list[str]:
+    """Read every across/down answer out of a filled grid."""
+    letters = grid_to_letters(grid)
+    words: list[str] = []
+    for slot in slots_from_grid(grid):
+        words.append("".join(letters[r][c] or "" for r, c in slot.cells))
+    return words
+
+
+def test_filled_slots_are_all_real_words(real_wordlist: list[str]) -> None:
+    """No-candidate fills must spell only real wordlist words.
+
+    Regression guard for the v0 bug where a fully-crossed slot was accepted
+    even when the crossings spelled a non-word (e.g. "CRBCA"). The clue step
+    then fabricated fake NBA lore for that junk. Every slot in a wordlist-only
+    fill must now be a real word. We sweep several seeds because the junk only
+    appeared on some crossings.
+    """
+    valid = set(real_wordlist)
+    for seed in range(6):
+        for black_squares in (2, 4):
+            grid = fill_grid([], real_wordlist, seed=seed, black_squares=black_squares)
+            for word in _grid_slot_words(grid):
+                assert word in valid, (
+                    f"seed={seed} bs={black_squares}: filled slot {word!r} is not a "
+                    f"real word — the real-word fill guard regressed"
+                )
+
+
+def test_offwordlist_candidate_does_not_inject_junk_crossings(
+    real_wordlist: list[str],
+) -> None:
+    """An off-wordlist candidate is allowed, but never forces junk crossings.
+
+    WEMBY isn't a dictionary word — it's a valid NBA candidate. Whether it
+    seats on a given seed is best-effort (the fill gracefully drops a
+    candidate it can't place with all-real crossings), so we don't require
+    placement here. The invariant we *do* require: the guard never lets the
+    candidate's presence smuggle a non-word into a crossing slot. Every slot
+    is either the candidate itself or a real word — same guarantee as the
+    no-candidate case. Candidate happy-path placement is covered by
+    ``test_fill_grid_places_a_compatible_candidate``.
+    """
+    valid = set(real_wordlist)
+    candidate = "WEMBY"
+    for seed in range(3):
+        grid = fill_grid([candidate], real_wordlist, seed=seed, black_squares=2)
+        _assert_grid_is_well_formed(grid, expected_block_count=2)
+        for word in _grid_slot_words(grid):
+            assert word == candidate or word in valid, (
+                f"seed={seed}: slot {word!r} is neither the candidate nor a real word"
+            )
+
+
+# ---------------------------------------------------------------------------
 # Graceful relaxation
 # ---------------------------------------------------------------------------
 

@@ -92,6 +92,12 @@ class _FillState:
     blocks: BlockSet
     slots: tuple[Slot, ...]
     wordlist_by_length: dict[int, list[str]]
+    # Per-length membership set of every word allowed to *complete* a slot:
+    # the wordlist plus the run's candidates. Used to reject a fully-crossed
+    # slot that happens to spell a non-word (e.g. crossing letters spelling
+    # "CRBCA"). Without this guard the fill emits junk that the clue step then
+    # fabricates fake NBA lore for. O(1) membership; built once per attempt.
+    valid_by_length: dict[int, set[str]] = field(default_factory=dict)
     used_words: set[str] = field(default_factory=set)
     rng: random.Random = field(default_factory=random.Random)
     steps: int = 0
@@ -336,11 +342,21 @@ def _attempt_fill(
     accommodate every candidate (in which case the caller drops a candidate
     or moves to the next template).
     """
+    # A fully-crossed slot is only valid if it spells a candidate or a real
+    # wordlist word. Build the per-length membership set once: wordlist ∪
+    # candidates (candidates may legitimately be off-wordlist NBA terms).
+    valid_by_length: dict[int, set[str]] = {
+        length: set(words) for length, words in wordlist_by_length.items()
+    }
+    for cand in candidates:
+        valid_by_length.setdefault(len(cand), set()).add(cand)
+
     state = _FillState(
         letters=[[None] * GRID_SIZE for _ in range(GRID_SIZE)],
         blocks=blocks,
         slots=slots,
         wordlist_by_length=wordlist_by_length,
+        valid_by_length=valid_by_length,
         rng=random.Random(seed),
     )
     # Mark blocks in the letters matrix with a sentinel so we can render them
@@ -444,11 +460,13 @@ def _backtrack_fill(state: _FillState) -> bool:
     for slot in state.slots:
         pattern = _slot_pattern(state, slot)
         if "_" not in pattern:
-            # Slot is fully filled. Verify it spells a real word — but for
-            # v0 we accept a fully-filled slot whether or not it's in the
-            # wordlist, since candidates may not be in the wordlist. The
-            # only constraint we care about is that *unfilled* slots can be
-            # completed. (Crossings are guaranteed agreement by construction.)
+            # Slot is fully filled by crossings. It's only valid if it spells
+            # a real word or one of this run's candidates — otherwise the
+            # crossings have spelled junk (e.g. "CRBCA"), which is a dead end:
+            # backtrack so the caller tries a different word in a crossing
+            # slot. (This is the guard that keeps non-words out of the grid.)
+            if pattern not in state.valid_by_length.get(slot.length, ()):
+                return False
             continue
 
         options = _matching_words(state.wordlist_by_length.get(slot.length, []), pattern)
