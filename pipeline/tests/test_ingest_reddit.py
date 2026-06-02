@@ -428,15 +428,26 @@ def test_split_flair_and_title_variants() -> None:
 
 
 def test_reddit_rss_url_defaults_to_nba() -> None:
-    assert reddit_rss_url() == "https://www.reddit.com/r/nba/top/.rss?t=day"
-    assert reddit_rss_url("wnba") == "https://www.reddit.com/r/wnba/top/.rss?t=day"
+    assert reddit_rss_url() == "https://www.reddit.com/r/nba/top/.rss?t=day&limit=100"
+    assert (
+        reddit_rss_url("wnba")
+        == "https://www.reddit.com/r/wnba/top/.rss?t=day&limit=100"
+    )
 
 
 def test_reddit_rss_url_window_param() -> None:
     assert (
         reddit_rss_url("nbatalk", window="week")
-        == "https://www.reddit.com/r/nbatalk/top/.rss?t=week"
+        == "https://www.reddit.com/r/nbatalk/top/.rss?t=week&limit=100"
     )
+
+
+def test_reddit_rss_url_requests_the_100_entry_ceiling() -> None:
+    # The default RSS listing is only 25 entries; we pin limit=100 (Reddit's
+    # hard ceiling) to quadruple the discourse pool. Regression guard so the
+    # limit isn't silently dropped.
+    for url in (reddit_rss_url(), reddit_rss_url("wnba", window="month")):
+        assert "limit=100" in url
 
 
 def test_rss_window_for_days_picks_smallest_covering_bucket() -> None:
@@ -449,6 +460,64 @@ def test_rss_window_for_days_picks_smallest_covering_bucket() -> None:
     # would silently cap the window at ~7 days of available posts.
     assert _rss_window_for_days(8) == "month"
     assert _rss_window_for_days(10) == "month"
+
+
+# ---------------------------------------------------------------------------
+# Self-text body extraction
+# ---------------------------------------------------------------------------
+
+
+def test_extract_selftext_body_lifts_real_post_text() -> None:
+    from nba_mini.ingest.reddit import _extract_selftext_body
+
+    # ElementTree has already unescaped the <content> text by the time this
+    # helper sees it, so the SC_OFF markers and inner tags are literal. The
+    # helper strips the tags and collapses whitespace.
+    content = (
+        '<!-- SC_OFF --><div class="md">'
+        "<p>The Spurs eliminated the Thunder in seven games.</p>"
+        "</div><!-- SC_ON --> submitted by /u/foo"
+    )
+    body = _extract_selftext_body(content)
+    assert body == "The Spurs eliminated the Thunder in seven games."
+
+
+def test_extract_selftext_body_empty_for_link_post() -> None:
+    from nba_mini.ingest.reddit import _extract_selftext_body
+
+    # A link/highlight post has no SC_OFF block — only boilerplate. No body.
+    content = 'submitted by /u/foo <a href="...">[link]</a>'
+    assert _extract_selftext_body(content) == ""
+    assert _extract_selftext_body(None) == ""
+    assert _extract_selftext_body("") == ""
+
+
+def test_extract_selftext_body_truncates_long_posts() -> None:
+    from nba_mini.ingest.reddit import _MAX_BODY_CHARS, _extract_selftext_body
+
+    long_text = "word " * 1000  # ~5000 chars
+    content = f"<!-- SC_OFF --><p>{long_text}</p><!-- SC_ON -->"
+    body = _extract_selftext_body(content)
+    assert len(body) <= _MAX_BODY_CHARS + 1  # +1 for the ellipsis
+    assert body.endswith("…")
+
+
+def test_rss_entry_populates_body_from_content() -> None:
+    from nba_mini.ingest.reddit import _parse_rss_entries
+
+    rss = (
+        '<?xml version="1.0" encoding="UTF-8"?>'
+        '<feed xmlns="http://www.w3.org/2005/Atom">'
+        "<entry><title>Spurs advance</title>"
+        '<link href="https://www.reddit.com/r/nba/comments/x/spurs/" />'
+        "<updated>2026-05-14T20:30:00+00:00</updated>"
+        "<content type=\"html\">&lt;!-- SC_OFF --&gt;&lt;p&gt;"
+        "Wemby was emotional after the win.&lt;/p&gt;&lt;!-- SC_ON --&gt;"
+        "</content></entry></feed>"
+    )
+    entries = _parse_rss_entries(rss)
+    assert len(entries) == 1
+    assert entries[0]["body"] == "Wemby was emotional after the win."
 
 
 # ---------------------------------------------------------------------------

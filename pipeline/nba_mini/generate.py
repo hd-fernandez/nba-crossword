@@ -151,9 +151,17 @@ _SUBREDDITS: dict[League, list[str]] = {
 # How many days of recent games + discourse to pull into the pool. A full week
 # (not just last night) so the puzzle reflects current events and — critically —
 # has enough *distinct* storylines that clues don't all reach for the same one
-# (the "thobe ×4" repetition problem). 7 is the natural ceiling of Reddit's
-# top-of-week feed; going past it (the reddit ingest auto-switches to the
-# top-of-month feed at >7) trades freshness for volume, so we stop at a week.
+# (the "thobe ×4" repetition problem).
+#
+# Why 7 and not more: Reddit's RSS is bucketed (day | week | month), and each
+# bucket holds the *top* posts ranked over that span, not a continuous feed. The
+# multi-day digest filters by exact timestamp afterward, so a bigger bucket only
+# helps if it actually reaches back far enough. ``week`` is the last bucket that
+# is *denser* than the window — every one of its (up to 100/sub) posts can fall
+# inside 7 days. At >7 the ingest switches to ``month``, whose top-100 are ranked
+# over ~31 days, so the timestamp filter discards most of them and yield *drops*
+# (measured: 7d→160 posts, 10d→66). 7 is the real sweet spot, not an arbitrary
+# cap. ``fetch_recent_discourse_rss`` logs a warning if asked for >7.
 RECENCY_WINDOW_DAYS = 7
 
 
@@ -401,6 +409,13 @@ def run_pipeline(
 
 _CANDIDATE_RE = re.compile(r"^[A-Z]+$")
 
+# How much of the (now much larger, body-rich) reddit pool to show the
+# candidate-picker. With bodies extracted and a 100/sub feed, the pool is big
+# enough that 10 posts left most storylines unseen; 24 gives the picker real
+# breadth without blowing the prompt budget. Bodies are trimmed per-post.
+_CANDIDATE_PROMPT_POSTS = 24
+_CANDIDATE_PROMPT_BODY_CHARS = 400
+
 
 def pick_candidate_pool(
     *,
@@ -522,9 +537,16 @@ def _format_reddit_for_prompt(digest: RedditDigest) -> str:
     if not digest.posts:
         return "(no posts)"
     lines: list[str] = []
-    for post in digest.posts[:10]:
+    for post in digest.posts[:_CANDIDATE_PROMPT_POSTS]:
         flair = f" [{post.flair}]" if post.flair else ""
         lines.append(f"- {post.title}{flair} (score {post.score})")
+        if post.body:
+            # The self-text body is where the real storyline detail lives —
+            # exactly the "current events" signal candidate-picking should see.
+            body = post.body
+            if len(body) > _CANDIDATE_PROMPT_BODY_CHARS:
+                body = body[:_CANDIDATE_PROMPT_BODY_CHARS].rsplit(" ", 1)[0] + "…"
+            lines.append(f"  > {body}")
         for c in post.top_comments[:3]:
             lines.append(f"  - {c}")
     return "\n".join(lines)
@@ -538,6 +560,8 @@ def _format_games_for_prompt(digest: GamesDigest) -> str:
     for game in digest.games:
         events = f" [{', '.join(game.notable_events)}]" if game.notable_events else ""
         lines.append(f"- {game.score}{events}")
+        if game.series_context:
+            lines.append(f"  ({game.series_context})")
         for perf in game.top_performers:
             lines.append(f"  - {perf.player} ({perf.team}): {perf.statline}")
     return "\n".join(lines)

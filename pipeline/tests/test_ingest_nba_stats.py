@@ -114,6 +114,21 @@ def _boxscore_payload(player_rows: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
+def _boxscore_with_team_stats(
+    payload: dict[str, Any], team_pts: dict[str, int]
+) -> dict[str, Any]:
+    """Add a TeamStats result set (the authoritative score source) to a box score."""
+    out = copy.deepcopy(payload)
+    out["resultSets"].append(
+        {
+            "name": "TeamStats",
+            "headers": ["TEAM_ABBREVIATION", "PTS"],
+            "rowSet": [[tri, pts] for tri, pts in team_pts.items()],
+        }
+    )
+    return out
+
+
 class StubStatsClient:
     """Test double for ``StatsClient``.
 
@@ -242,6 +257,211 @@ def test_single_game_playoff_night_returns_one_game(tmp_path: Path) -> None:
     assert isinstance(result, GamesDigest)
     assert len(result.games) == 1
     assert result.games[0].game_id == "0042500301"
+
+
+# ---------------------------------------------------------------------------
+# Unfinished / future games are filtered (the fabricated-0-0 bug)
+# ---------------------------------------------------------------------------
+
+
+def _empty_boxscore() -> dict[str, Any]:
+    """A box score for a scheduled-but-not-played game: zero player rows."""
+    return _boxscore_payload([])
+
+
+def _unplayed_boxscore() -> dict[str, Any]:
+    """A stub box score: player rows present but nobody has logged minutes."""
+    return _boxscore_payload(
+        [
+            _player_row("DEN", "Nikola Jokic", minutes="", pts=0),
+            _player_row("LAL", "Luka Doncic", minutes="", pts=0),
+        ]
+    )
+
+
+def test_future_dated_game_is_skipped(tmp_path: Path) -> None:
+    """A game dated on/after the publish date is dropped as a future game.
+
+    This is the production bug's root cause: a publish-date pipeline probing a
+    not-yet-played Finals game got a scoreboard row with ``PTS=None`` that the
+    old code coerced to a fabricated 0-0 final. The date gate ("game_dates less
+    than today") excludes it cleanly.
+    """
+    sb = _load_scoreboard_fixture()
+    # Re-date both games to the publish date itself — i.e. not yet in the past.
+    for row in sb["resultSets"][0]["rowSet"]:
+        row[0] = "2026-05-14T00:00:00"
+
+    client = StubStatsClient(scoreboard=sb, boxscores=_default_boxscores())
+    # Publish date == game date -> every game is "today or later" -> skipped.
+    result = fetch_yesterday_games(
+        date(2026, 5, 14),
+        today=date(2026, 5, 14),
+        client=client,
+        cache_dir=tmp_path,
+        sleep=_no_sleep,
+    )
+    from nba_mini.ingest.nba_stats import NoGamesSignal
+
+    assert isinstance(result, NoGamesSignal)
+
+
+def test_past_dated_game_with_null_scoreboard_pts_is_kept(tmp_path: Path) -> None:
+    """A real prior game whose scoreboard PTS is None is still ingested.
+
+    nba.com routinely serves ``PTS=None`` on the *scoreboard* even for finished
+    games; the score is recovered from the box score's TeamStats. The critical
+    regression guard: such a game must NOT be dropped (it's exactly the prior
+    box score the puzzle depends on).
+    """
+    sb = _load_scoreboard_fixture()
+    sb["resultSets"][0]["rowSet"] = sb["resultSets"][0]["rowSet"][:1]
+    sb["resultSets"][1]["rowSet"] = [
+        row for row in sb["resultSets"][1]["rowSet"] if row[0] == "0042500301"
+    ]
+    # Null the scoreboard PTS (index 5) for the surviving game.
+    for row in sb["resultSets"][1]["rowSet"]:
+        row[5] = None
+
+    # Box score with a real TeamStats total — the source of truth.
+    box = _boxscore_with_team_stats(
+        _default_boxscores()["0042500301"], {"BOS": 112, "NYK": 105}
+    )
+    client = StubStatsClient(scoreboard=sb, boxscores={"0042500301": box})
+    result = fetch_yesterday_games(
+        date(2026, 5, 14),
+        today=date(2026, 5, 15),
+        client=client,
+        cache_dir=tmp_path,
+        sleep=_no_sleep,
+    )
+    assert isinstance(result, GamesDigest)
+    game = result.games[0]
+    assert game.home_score == 112
+    assert game.away_score == 105
+    assert "BOS 112, NYK 105" in game.score
+
+
+def test_unplayed_boxscore_is_skipped(tmp_path: Path) -> None:
+    """A past-dated but never-tipped game (no minutes played) is dropped."""
+    sb = _load_scoreboard_fixture()
+    sb["resultSets"][0]["rowSet"] = sb["resultSets"][0]["rowSet"][:1]
+    sb["resultSets"][1]["rowSet"] = [
+        row for row in sb["resultSets"][1]["rowSet"] if row[0] == "0042500301"
+    ]
+    client = StubStatsClient(
+        scoreboard=sb, boxscores={"0042500301": _unplayed_boxscore()}
+    )
+    result = fetch_yesterday_games(
+        date(2026, 5, 14),
+        today=date(2026, 5, 15),
+        client=client,
+        cache_dir=tmp_path,
+        sleep=_no_sleep,
+    )
+    from nba_mini.ingest.nba_stats import NoGamesSignal
+
+    assert isinstance(result, NoGamesSignal)
+
+
+def test_mixed_slate_keeps_played_drops_future(tmp_path: Path) -> None:
+    """A slate with one prior-played game + one future game keeps only the played one."""
+    sb = _load_scoreboard_fixture()
+    # Game 301 is a real prior game (05-13); game 302 is future (05-15).
+    headers = sb["resultSets"][0]["rowSet"]
+    for row in headers:
+        if row[1] == "0042500301":
+            row[0] = "2026-05-13T00:00:00"
+        elif row[1] == "0042500302":
+            row[0] = "2026-05-15T00:00:00"
+
+    client = StubStatsClient(scoreboard=sb, boxscores=_default_boxscores())
+    result = fetch_yesterday_games(
+        date(2026, 5, 14),
+        today=date(2026, 5, 14),
+        client=client,
+        cache_dir=tmp_path,
+        sleep=_no_sleep,
+    )
+    assert isinstance(result, GamesDigest)
+    assert [g.game_id for g in result.games] == ["0042500301"]
+
+
+# ---------------------------------------------------------------------------
+# Series context (best-effort playoff grounding)
+# ---------------------------------------------------------------------------
+
+
+def test_parse_series_context_builds_grounding_line() -> None:
+    from nba_mini.ingest.nba_stats import _parse_series_context
+
+    payload = {
+        "boxScoreSummary": {
+            "gameLabel": "Western Conf Finals",
+            "seriesGameNumber": "Game 6",
+            "seriesText": "Series tied 3-3",
+        }
+    }
+    assert (
+        _parse_series_context(payload)
+        == "Western Conf Finals, Game 6 — Series tied 3-3"
+    )
+
+
+def test_parse_series_context_empty_for_regular_season() -> None:
+    from nba_mini.ingest.nba_stats import _parse_series_context
+
+    # Regular-season games carry no series text / label.
+    assert _parse_series_context({"boxScoreSummary": {}}) == ""
+    assert _parse_series_context({}) == ""
+    assert _parse_series_context({"boxScoreSummary": None}) == ""
+
+
+def test_series_context_absent_when_client_lacks_fetch_summary(tmp_path: Path) -> None:
+    """The default StubStatsClient has no fetch_summary; series_context stays ''."""
+    sb = _load_scoreboard_fixture()
+    sb["resultSets"][0]["rowSet"] = sb["resultSets"][0]["rowSet"][:1]
+    sb["resultSets"][1]["rowSet"] = [
+        row for row in sb["resultSets"][1]["rowSet"] if row[0] == "0042500301"
+    ]
+    client = StubStatsClient(
+        scoreboard=sb,
+        boxscores={"0042500301": _default_boxscores()["0042500301"]},
+    )
+    result = fetch_yesterday_games(
+        date(2026, 5, 14), client=client, cache_dir=tmp_path, sleep=_no_sleep
+    )
+    assert isinstance(result, GamesDigest)
+    assert result.games[0].series_context == ""
+
+
+def test_series_context_populated_when_client_provides_summary(tmp_path: Path) -> None:
+    """A client exposing fetch_summary surfaces series_context on the game."""
+    sb = _load_scoreboard_fixture()
+    sb["resultSets"][0]["rowSet"] = sb["resultSets"][0]["rowSet"][:1]
+    sb["resultSets"][1]["rowSet"] = [
+        row for row in sb["resultSets"][1]["rowSet"] if row[0] == "0042500301"
+    ]
+
+    class SummaryStub(StubStatsClient):
+        def fetch_summary(self, game_id: str) -> dict[str, Any]:
+            return {
+                "boxScoreSummary": {
+                    "gameLabel": "NBA Finals",
+                    "seriesGameNumber": "Game 3",
+                    "seriesText": "BOS leads 2-0",
+                }
+            }
+
+    client = SummaryStub(
+        scoreboard=sb,
+        boxscores={"0042500301": _default_boxscores()["0042500301"]},
+    )
+    result = fetch_yesterday_games(
+        date(2026, 5, 14), client=client, cache_dir=tmp_path, sleep=_no_sleep
+    )
+    assert isinstance(result, GamesDigest)
+    assert result.games[0].series_context == "NBA Finals, Game 3 — BOS leads 2-0"
 
 
 # ---------------------------------------------------------------------------

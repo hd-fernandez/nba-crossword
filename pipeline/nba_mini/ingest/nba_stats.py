@@ -77,6 +77,14 @@ class GameSummary(BaseModel):
     score: Annotated[str, Field(min_length=1)]
     """Pretty-printed final, e.g. ``"BOS 112, NYK 109 (OT)"``."""
     top_performers: list[TopPerformer]
+    series_context: str = ""
+    """Playoff series grounding, e.g. ``"Western Conf Finals, Game 6 — Series
+    tied 3-3"``. Empty for regular-season games or when nba.com doesn't serve it.
+
+    nba.com has no prose recap endpoint, but it does serve the series state
+    (round, game number, who leads). That's the single most hallucination-prone
+    fact in a playoff clue, so grounding it here keeps clues honest. Populated
+    best-effort: a fetch failure leaves it empty rather than failing the game."""
     notable_events: list[str]
     """Tags like ``"OT"``, ``"2OT"``, ``"BLOWOUT"``, ``"NAILBITER"``,
     ``"FOULED_OUT:LeBron James"``."""
@@ -130,7 +138,13 @@ class NBAStatsParseError(NBAStatsError):
 
 
 class StatsClient(Protocol):
-    """Minimal contract over the two nba.com endpoints we use."""
+    """Minimal contract over the nba.com endpoints we use.
+
+    ``fetch_summary`` is optional: it carries the playoff series context, which
+    is best-effort grounding rather than core data. Clients (and test stubs)
+    that don't implement it are fine — the caller probes with ``getattr`` and
+    skips series context when it's absent.
+    """
 
     def fetch_scoreboard(self, game_date: date_cls) -> dict[str, Any]: ...
     def fetch_boxscore(self, game_id: str) -> dict[str, Any]: ...
@@ -174,6 +188,18 @@ class NbaApiStatsClient:
         from nba_api.stats.endpoints import boxscoretraditionalv2  # type: ignore[import-not-found]
 
         endpoint = boxscoretraditionalv2.BoxScoreTraditionalV2(game_id=game_id)
+        return endpoint.get_dict()
+
+    def fetch_summary(self, game_id: str) -> dict[str, Any]:
+        """Game summary (carries playoff series state). Best-effort grounding.
+
+        Uses BoxScoreSummaryV3 — its ``seriesText`` / ``gameLabel`` fields are
+        the series context we ground playoff clues on. Has no regular-season
+        signal, and the caller treats any failure as "no series context."
+        """
+        from nba_api.stats.endpoints import boxscoresummaryv3  # type: ignore[import-not-found]
+
+        endpoint = boxscoresummaryv3.BoxScoreSummaryV3(game_id=game_id)
         return endpoint.get_dict()
 
 
@@ -298,8 +324,35 @@ def _rows_as_dicts(rs: dict[str, Any]) -> list[dict[str, Any]]:
     return [dict(zip(headers, row, strict=False)) for row in rows]
 
 
-def _parse_scoreboard(payload: dict[str, Any]) -> list[dict[str, Any]]:
-    """Return a list of ``{game_id, home_team, away_team, home_score, away_score, period}``."""
+def _parse_game_date(raw: Any) -> date_cls | None:
+    """Parse ``GAME_DATE_EST`` (``"2026-05-30T00:00:00"``) into a date, or None."""
+    if not raw:
+        return None
+    s = str(raw)
+    # The date portion is always the leading 10 chars; the time/zone is noise.
+    try:
+        return date_cls.fromisoformat(s[:10])
+    except ValueError:
+        return None
+
+
+def _parse_scoreboard(
+    payload: dict[str, Any], *, today: date_cls | None = None
+) -> list[dict[str, Any]]:
+    """Parse the scoreboard into per-game metadata for **prior** games.
+
+    Returns ``{game_id, home/away_team, home/away_score, period}`` per game,
+    where the scores may be ``None`` — nba.com routinely serves ``PTS=None`` on
+    the scoreboard even for completed games, so the authoritative score is
+    backfilled from the box score downstream. We do **not** coerce a missing
+    score to 0 here (that was the fabricated-0-0 bug).
+
+    ``today`` is the publish-date boundary: any game dated **on or after**
+    ``today`` is a future/not-yet-played game and is dropped. This is the
+    primary, reliable future-game gate ("use game dates less than today"); the
+    box-score "was it actually played" check downstream is the backstop for
+    postponed games dated in the past.
+    """
 
     sets = _index_result_sets(payload)
     if _RS_GAME_HEADER not in sets:
@@ -323,17 +376,35 @@ def _parse_scoreboard(payload: dict[str, Any]) -> list[dict[str, Any]]:
         except KeyError as exc:
             raise NBAStatsParseError(f"game header missing key: {exc}") from exc
 
+        # Future-game gate: drop anything dated on/after the publish date. A
+        # game with no parseable date is kept (the box-score check still guards
+        # it) rather than dropped on a formatting quirk.
+        game_date = _parse_game_date(header.get("GAME_DATE_EST"))
+        if today is not None and game_date is not None and game_date >= today:
+            logger.info(
+                "skipping future game %s dated %s (>= publish date %s)",
+                game_id,
+                game_date.isoformat(),
+                today.isoformat(),
+            )
+            continue
+
         # The line score table uses team_id too; pull tri-codes + scores via id.
         home_line = _find_line_for_team(sets, game_id, home_id)
         away_line = _find_line_for_team(sets, game_id, away_id)
+
+        home_pts = home_line.get("PTS")
+        away_pts = away_line.get("PTS")
 
         games.append(
             {
                 "game_id": game_id,
                 "home_team": home_line["TEAM_ABBREVIATION"],
                 "away_team": away_line["TEAM_ABBREVIATION"],
-                "home_score": int(home_line.get("PTS") or 0),
-                "away_score": int(away_line.get("PTS") or 0),
+                # Scores stay None when the scoreboard omits them; the box score
+                # is the source of truth and backfills downstream.
+                "home_score": None if home_pts is None else int(home_pts),
+                "away_score": None if away_pts is None else int(away_pts),
                 # LIVE_PERIOD is "current period" for in-progress games and the
                 # final period for completed games. Period > 4 → overtime.
                 "period": int(home_line.get("LIVE_PERIOD") or header.get("LIVE_PERIOD") or 4),
@@ -360,6 +431,70 @@ def _parse_boxscore_players(payload: dict[str, Any]) -> list[dict[str, Any]]:
     if _RS_PLAYER_STATS not in sets:
         raise NBAStatsParseError(f"boxscore missing '{_RS_PLAYER_STATS}' set")
     return _rows_as_dicts(sets[_RS_PLAYER_STATS])
+
+
+_RS_TEAM_STATS = "TeamStats"
+
+
+def _boxscore_was_played(player_rows: list[dict[str, Any]]) -> bool:
+    """True iff at least one player logged minutes — i.e. the game happened.
+
+    nba.com serves a stub box score (empty or all-zero-minute player rows) for
+    a scheduled game that hasn't tipped off. This is the authoritative "did it
+    actually happen" check, used as a backstop to the scoreboard date gate for
+    postponed games that are dated in the past but never played.
+    """
+    return any(_parse_minutes(row.get("MIN")) > 0 for row in player_rows)
+
+
+def _team_scores_from_boxscore(payload: dict[str, Any]) -> dict[str, int]:
+    """Authoritative ``{tri_code: PTS}`` from the box score's TeamStats table.
+
+    The scoreboard's line-score PTS is frequently ``None`` even for finished
+    games; TeamStats carries the real final. Returns ``{}`` if the table is
+    missing or unparseable (caller falls back to whatever the scoreboard had).
+    """
+    sets = _index_result_sets(payload)
+    ts = sets.get(_RS_TEAM_STATS)
+    if not ts:
+        return {}
+    out: dict[str, int] = {}
+    for row in _rows_as_dicts(ts):
+        tri = row.get("TEAM_ABBREVIATION")
+        pts = row.get("PTS")
+        if tri and pts is not None:
+            try:
+                out[str(tri)] = int(pts)
+            except (TypeError, ValueError):
+                continue
+    return out
+
+
+def _parse_series_context(summary_payload: dict[str, Any]) -> str:
+    """Build a one-line playoff series-context string from a V3 summary payload.
+
+    Returns ``""`` for regular-season games (no series text) or any payload
+    shape we don't recognize — this is best-effort grounding, never a hard
+    failure. Example output: ``"Western Conf Finals, Game 6 — Series tied 3-3"``.
+    """
+    summary = summary_payload.get("boxScoreSummary")
+    if not isinstance(summary, dict):
+        return ""
+
+    series_text = str(summary.get("seriesText") or "").strip()
+    game_number = str(summary.get("seriesGameNumber") or "").strip()
+    # ``gameLabel`` is the round name ("Western Conf Finals"); ``gameSubLabel``
+    # is sometimes the same series-text repeated, so we prefer the label.
+    label = str(summary.get("gameLabel") or "").strip()
+
+    if not (series_text or game_number or label):
+        return ""
+
+    head_parts = [p for p in (label, game_number) if p]
+    head = ", ".join(head_parts)
+    if head and series_text:
+        return f"{head} — {series_text}"
+    return head or series_text
 
 
 # ---------------------------------------------------------------------------
@@ -500,10 +635,48 @@ def _detect_notable_events(
 # ---------------------------------------------------------------------------
 
 
+def _fetch_series_context(
+    client: StatsClient,
+    game_id: str,
+    *,
+    cache_dir: Path,
+    retry: RetryConfig,
+    sleep,
+) -> str:
+    """Best-effort playoff series context for a game. Never raises.
+
+    Probes the client for an optional ``fetch_summary`` method (test stubs and
+    older clients don't have it). Any failure — missing method, network error,
+    unparseable payload — degrades to ``""`` and is logged, never propagated.
+    Series context is grounding, not core data; a missing summary must not sink
+    an otherwise-complete game.
+    """
+    fetch_summary = getattr(client, "fetch_summary", None)
+    if not callable(fetch_summary):
+        return ""
+
+    summary_cache_path = cache_dir / f"summary-{game_id}.json"
+    try:
+        payload = _read_cache(summary_cache_path)
+        if payload is None:
+            payload = _with_retry(
+                lambda: fetch_summary(game_id),
+                label=f"summary {game_id}",
+                config=retry,
+                sleep=sleep,
+            )
+            _write_cache(summary_cache_path, payload)
+        return _parse_series_context(payload)
+    except Exception as exc:  # noqa: BLE001 — grounding is strictly best-effort
+        logger.info("no series context for game %s: %s", game_id, exc)
+        return ""
+
+
 def fetch_yesterday_games(
     date: date_cls,
     *,
     league: League = "nba",
+    today: date_cls | None = None,
     client: StatsClient | None = None,
     cache_dir: Path | None = None,
     retry: RetryConfig | None = None,
@@ -511,11 +684,22 @@ def fetch_yesterday_games(
 ) -> GamesDigest | NoGamesSignal:
     """Fetch the slate played on ``date`` (US/Eastern) and return a digest.
 
+    Only **already-played** games are returned. Two gates enforce that: games
+    dated on or after ``today`` (the publish date) are dropped as future, and a
+    game whose box score shows no minutes played is dropped as not-yet-tipped.
+    Final scores are taken from the box score (the scoreboard's PTS is often
+    ``None`` even for completed games), never fabricated as 0-0.
+
     Parameters
     ----------
     date:
         Calendar date to fetch (caller resolves "yesterday" in US/Eastern;
         nba.com's day boundary lines up with ET).
+    today:
+        The publish-date boundary for the future-game gate. Games dated on or
+        after this are excluded. Defaults to ``date + 1`` (i.e. treat ``date``
+        itself as a valid past day) when not supplied, preserving the original
+        single-day behavior.
     league:
         Which league's slate to fetch — ``"nba"`` or ``"wnba"``. Selects the
         default client's ``league_id``. Ignored when ``client`` is given (the
@@ -564,7 +748,10 @@ def fetch_yesterday_games(
         )
         _write_cache(sb_cache_path, sb_payload)
 
-    games_meta = _parse_scoreboard(sb_payload)
+    # Default the future-game boundary to date+1, so ``date`` itself counts as a
+    # valid past day (the original single-day semantics).
+    boundary = today if today is not None else date + timedelta(days=1)
+    games_meta = _parse_scoreboard(sb_payload, today=boundary)
     if not games_meta:
         return NoGamesSignal(date=iso)
 
@@ -583,37 +770,68 @@ def fetch_yesterday_games(
             _write_cache(bs_cache_path, bs_payload)
 
         player_rows = _parse_boxscore_players(bs_payload)
+
+        # Authoritative "did it actually happen" check: a scheduled game (dated
+        # in the past but postponed, or a stub the scoreboard listed) has a box
+        # score with no minutes played. Skip it rather than emit a 0-0 result.
+        if not _boxscore_was_played(player_rows):
+            logger.info(
+                "skipping game %s: box score shows no minutes played (not tipped off)",
+                game_id,
+            )
+            continue
+
+        # Backfill scores from the box score's TeamStats — the scoreboard's PTS
+        # is frequently None even for finished games. Fall back to whatever the
+        # scoreboard had (then 0 as a last resort, though a played game always
+        # has a TeamStats total).
+        team_scores = _team_scores_from_boxscore(bs_payload)
+        home_score = team_scores.get(meta["home_team"], meta["home_score"]) or 0
+        away_score = team_scores.get(meta["away_team"], meta["away_score"]) or 0
+
         top_performers = _select_top_performers(
             player_rows, home=meta["home_team"], away=meta["away_team"]
         )
         notable = _detect_notable_events(
             home=meta["home_team"],
             away=meta["away_team"],
-            home_score=meta["home_score"],
-            away_score=meta["away_score"],
+            home_score=home_score,
+            away_score=away_score,
             period=meta["period"],
             player_rows=player_rows,
         )
 
         score_str = _format_score(
             meta["home_team"],
-            meta["home_score"],
+            home_score,
             meta["away_team"],
-            meta["away_score"],
+            away_score,
             period=meta["period"],
         )
+
+        series_context = _fetch_series_context(
+            client, game_id, cache_dir=cache_dir, retry=retry, sleep=sleep
+        )
+
         summaries.append(
             GameSummary(
                 game_id=game_id,
                 home=meta["home_team"],
                 away=meta["away_team"],
-                home_score=meta["home_score"],
-                away_score=meta["away_score"],
+                home_score=home_score,
+                away_score=away_score,
                 score=score_str,
                 top_performers=top_performers,
+                series_context=series_context,
                 notable_events=notable,
             )
         )
+
+    # Every game on the scoreboard may have been filtered out (all future, or
+    # all unplayed stubs). An empty digest is meaningless — signal no-games so
+    # the walk-back keeps looking and the caller short-circuits correctly.
+    if not summaries:
+        return NoGamesSignal(date=iso)
 
     return GamesDigest(date=iso, games=summaries)
 
@@ -655,6 +873,7 @@ def fetch_most_recent_games(
         result = fetch_yesterday_games(
             day,
             league=league,
+            today=start,
             client=probe_client,
             cache_dir=cache_dir,
             retry=retry,
@@ -730,6 +949,7 @@ def fetch_recent_games(
         result = fetch_yesterday_games(
             day,
             league=league,
+            today=start,
             client=probe_client,
             cache_dir=cache_dir,
             retry=retry,

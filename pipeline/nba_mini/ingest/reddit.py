@@ -82,6 +82,15 @@ class RedditPost(BaseModel):
     comment_count: int
     top_comments: list[str]
     permalink: Annotated[str, Field(min_length=1)]
+    body: str = ""
+    """Self-text body of the post, when it has one.
+
+    Link/highlight posts carry no real body (their title is the content), so
+    this is empty for them. For self-text posts it's the unescaped, tag-stripped
+    discussion text — a big chunk of discourse signal the title alone misses.
+    The JSON ingest path doesn't populate it (it predates the field); only the
+    RSS path fills it, which is the production default.
+    """
 
 
 class RedditDigest(BaseModel):
@@ -198,14 +207,25 @@ def fetch_yesterday_discourse(
 # needs, so we accept the trade and surface empty `top_comments` / `score=0`.
 
 
+# Reddit caps a single RSS listing at 100 entries. The default (no ``limit``)
+# is only 25 — asking for 100 quadruples the pool for free. ``after=`` paging
+# is broken on the RSS endpoint (it returns the same page), so 100/sub is the
+# hard ceiling per feed; we take all of it.
+RSS_LISTING_LIMIT = 100
+
+
 def reddit_rss_url(subreddit: str = "nba", *, window: str = "day") -> str:
     """Top-of-``window`` Atom feed URL for a subreddit.
 
     ``window`` is Reddit's ``t`` param: ``day`` | ``week`` | ``month`` | ...
     We use ``week`` for the multi-day recency pool and ``day`` for the legacy
-    single-day path.
+    single-day path. ``limit`` is pinned to the 100-entry ceiling (see
+    ``RSS_LISTING_LIMIT``).
     """
-    return f"https://www.reddit.com/r/{subreddit}/top/.rss?t={window}"
+    return (
+        f"https://www.reddit.com/r/{subreddit}/top/.rss"
+        f"?t={window}&limit={RSS_LISTING_LIMIT}"
+    )
 
 
 def _rss_window_for_days(window_days: int) -> str:
@@ -281,6 +301,7 @@ def fetch_yesterday_discourse_rss(
                 comment_count=0,
                 top_comments=[],
                 permalink=entry["permalink"],
+                body=entry.get("body", ""),
             )
         )
 
@@ -324,6 +345,20 @@ def fetch_recent_discourse_rss(
         batch. Only if *every* subreddit fails do we raise, since that's a real
         outage rather than one flaky feed.
     """
+    if window_days > 7:
+        # Past a week the only feed that reaches back far enough is ``month``,
+        # whose top-100 are ranked over ~31 days — so the timestamp filter below
+        # discards most of them and the *effective* pool shrinks rather than
+        # grows (measured: 7d→160 surviving posts, 10d→66). This isn't a hard
+        # error (the run still produces a digest), but it's a degradation worth
+        # surfacing rather than hiding.
+        logger.warning(
+            "reddit: window_days=%d exceeds the 7-day RSS sweet spot; the feed "
+            "falls back to the top-of-month bucket and the timestamp filter "
+            "discards most of it, so the pool typically *shrinks*. Prefer <= 7.",
+            window_days,
+        )
+
     window_start = today - timedelta(days=window_days)
     window_end = today  # exclusive — excludes the partial current ET-day
     start_utc, _ = _et_day_bounds_utc(window_start)
@@ -368,6 +403,7 @@ def fetch_recent_discourse_rss(
                     comment_count=0,
                     top_comments=[],
                     permalink=permalink,
+                    body=entry.get("body", ""),
                 )
             )
 
@@ -402,6 +438,7 @@ def _parse_rss_entries(rss_text: str) -> list[dict]:
         title_el = el.find(f"{_ATOM_NS}title")
         link_el = el.find(f"{_ATOM_NS}link")
         updated_el = el.find(f"{_ATOM_NS}updated")
+        content_el = el.find(f"{_ATOM_NS}content")
 
         raw_title = (title_el.text or "").strip() if title_el is not None else ""
         permalink = ""
@@ -419,12 +456,55 @@ def _parse_rss_entries(rss_text: str) -> list[dict]:
                 "title": title,
                 "flair": flair,
                 "permalink": permalink,
+                "body": _extract_selftext_body(
+                    content_el.text if content_el is not None else None
+                ),
                 "created_utc": _parse_atom_timestamp(
                     updated_el.text if updated_el is not None else None
                 ),
             }
         )
     return entries
+
+
+# Reddit wraps a self-post's real body in these comment markers inside <content>.
+# A link/highlight post has no such block — its <content> is just the
+# "submitted by /u/... [link] [comments]" boilerplate, which carries no signal
+# the title doesn't already have. So we only lift text found between the markers.
+_SELFTEXT_OPEN = "<!-- SC_OFF -->"
+_SELFTEXT_CLOSE = "<!-- SC_ON -->"
+_MAX_BODY_CHARS = 1500
+
+
+def _extract_selftext_body(content_html: str | None) -> str:
+    """Pull a post's self-text body out of an RSS ``<content>`` block.
+
+    Returns the unescaped, tag-stripped, whitespace-collapsed body for a
+    self-text post, or ``""`` for a link/highlight post (whose content is just
+    boilerplate). Truncated to ``_MAX_BODY_CHARS`` so one rambling post can't
+    dominate the prompt budget.
+    """
+    if not content_html:
+        return ""
+    import html  # noqa: PLC0415 — stdlib, lazy for symmetry
+    import re  # noqa: PLC0415
+
+    start = content_html.find(_SELFTEXT_OPEN)
+    end = content_html.find(_SELFTEXT_CLOSE)
+    if start == -1 or end == -1 or end <= start:
+        # No self-text block: link/highlight post. Title is the whole signal.
+        return ""
+
+    inner = content_html[start + len(_SELFTEXT_OPEN) : end]
+    # Content is double-escaped (entity-encoded HTML). Unescape, strip tags,
+    # unescape once more (tags themselves were entity-encoded), then collapse.
+    inner = html.unescape(inner)
+    inner = re.sub(r"<[^>]+>", " ", inner)
+    inner = html.unescape(inner)
+    inner = re.sub(r"\s+", " ", inner).strip()
+    if len(inner) > _MAX_BODY_CHARS:
+        inner = inner[:_MAX_BODY_CHARS].rsplit(" ", 1)[0] + "…"
+    return inner
 
 
 def _split_flair_and_title(raw_title: str) -> tuple[str | None, str]:

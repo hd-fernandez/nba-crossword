@@ -702,6 +702,8 @@ def _slice_discourse_for_entry(entry: Entry, digest: RedditDigest | None) -> str
 def _post_relevant_to(post: RedditPost, needle: str) -> bool:
     if needle in post.title.lower():
         return True
+    if post.body and needle in post.body.lower():
+        return True
     return any(needle in c.lower() for c in post.top_comments)
 
 
@@ -709,10 +711,20 @@ def _format_post_for_prompt(post: RedditPost) -> str:
     """A compact, prompt-friendly serialization of one reddit post."""
     flair = f" [{post.flair}]" if post.flair else ""
     head = f"- {post.title}{flair} (score {post.score})"
-    if not post.top_comments:
-        return head
-    bullets = "\n".join(f"  - {c}" for c in post.top_comments[:3])
-    return f"{head}\n{bullets}"
+    lines = [head]
+    if post.body:
+        # Self-text body carries the real discourse the title only hints at.
+        # Trim per-clue so one long post doesn't crowd out the others.
+        lines.append(f"  > {_truncate(post.body, 300)}")
+    lines.extend(f"  - {c}" for c in post.top_comments[:3])
+    return "\n".join(lines)
+
+
+def _truncate(text: str, limit: int) -> str:
+    """Word-boundary truncation with an ellipsis, for prompt compactness."""
+    if len(text) <= limit:
+        return text
+    return text[:limit].rsplit(" ", 1)[0] + "…"
 
 
 def _grounding_fact_for_entry(entry: Entry, digest: GamesDigest | None) -> str | None:
