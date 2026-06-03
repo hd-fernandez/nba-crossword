@@ -1,0 +1,191 @@
+{
+  "date": "2026-06-03",
+  "slate_date": "2026-05-31",
+  "league": "wnba",
+  "puzzle_number": 6,
+  "grid": {
+    "size": 5,
+    "cells": [
+      [
+        {
+          "block": true
+        },
+        {
+          "answer": "A"
+        },
+        {
+          "answer": "R"
+        },
+        {
+          "answer": "C"
+        },
+        {
+          "block": true
+        }
+      ],
+      [
+        {
+          "answer": "O"
+        },
+        {
+          "answer": "R"
+        },
+        {
+          "answer": "A"
+        },
+        {
+          "answer": "L"
+        },
+        {
+          "answer": "S"
+        }
+      ],
+      [
+        {
+          "answer": "R"
+        },
+        {
+          "answer": "E"
+        },
+        {
+          "answer": "N"
+        },
+        {
+          "answer": "A"
+        },
+        {
+          "answer": "L"
+        }
+      ],
+      [
+        {
+          "answer": "E"
+        },
+        {
+          "answer": "N"
+        },
+        {
+          "answer": "T"
+        },
+        {
+          "answer": "R"
+        },
+        {
+          "answer": "Y"
+        }
+      ],
+      [
+        {
+          "block": true
+        },
+        {
+          "answer": "A"
+        },
+        {
+          "answer": "S"
+        },
+        {
+          "answer": "K"
+        },
+        {
+          "block": true
+        }
+      ]
+    ]
+  },
+  "entries": [
+    {
+      "id": "1A",
+      "direction": "across",
+      "row": 0,
+      "col": 1,
+      "answer": "ARC",
+      "clue": "Shepard's shot trajectory on that 22-point night, geometrically speaking.",
+      "voice": "wry"
+    },
+    {
+      "id": "1D",
+      "direction": "down",
+      "row": 0,
+      "col": 1,
+      "answer": "ARENA",
+      "clue": "Sold-out venue for a marquee matchup.",
+      "voice": "wry"
+    },
+    {
+      "id": "2D",
+      "direction": "down",
+      "row": 0,
+      "col": 2,
+      "answer": "RANTS",
+      "clue": "Postgame podium tirades, when the ref talk turns personal.",
+      "voice": "discoursey"
+    },
+    {
+      "id": "3D",
+      "direction": "down",
+      "row": 0,
+      "col": 3,
+      "answer": "CLARK",
+      "clue": "Indiana Fever guard known for her deep range.",
+      "voice": "factual"
+    },
+    {
+      "id": "4A",
+      "direction": "across",
+      "row": 1,
+      "col": 0,
+      "answer": "ORALS",
+      "clue": "Doctoral defenses, formally.",
+      "voice": "discoursey"
+    },
+    {
+      "id": "4D",
+      "direction": "down",
+      "row": 1,
+      "col": 0,
+      "answer": "ORE",
+      "clue": "Portland's state, for short, as in where the Fire play their home games.",
+      "voice": "wry"
+    },
+    {
+      "id": "5D",
+      "direction": "down",
+      "row": 1,
+      "col": 4,
+      "answer": "SLY",
+      "clue": "Cunning, as a no-look pass that fools the entire defense.",
+      "voice": "wry"
+    },
+    {
+      "id": "6A",
+      "direction": "across",
+      "row": 2,
+      "col": 0,
+      "answer": "RENAL",
+      "clue": "Pertaining to the kidneys.",
+      "voice": "discoursey"
+    },
+    {
+      "id": "7A",
+      "direction": "across",
+      "row": 3,
+      "col": 0,
+      "answer": "ENTRY",
+      "clue": "Pass designed to get the ball into the post.",
+      "voice": "factual"
+    },
+    {
+      "id": "8A",
+      "direction": "across",
+      "row": 4,
+      "col": 1,
+      "answer": "ASK",
+      "clue": "What a reporter does after a postgame podium goes quiet.",
+      "voice": "wry"
+    }
+  ],
+  "season_context_version": "423903c3",
+  "generated_at": "2026-06-03T15:33:26.445475Z",
+  "model": "us.anthropic.claude-sonnet-4-6"
+}

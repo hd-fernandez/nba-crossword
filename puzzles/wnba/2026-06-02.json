@@ -1,0 +1,191 @@
+{
+  "date": "2026-06-02",
+  "slate_date": "2026-05-31",
+  "league": "wnba",
+  "puzzle_number": 5,
+  "grid": {
+    "size": 5,
+    "cells": [
+      [
+        {
+          "block": true
+        },
+        {
+          "answer": "L"
+        },
+        {
+          "answer": "A"
+        },
+        {
+          "answer": "W"
+        },
+        {
+          "block": true
+        }
+      ],
+      [
+        {
+          "answer": "T"
+        },
+        {
+          "answer": "O"
+        },
+        {
+          "answer": "D"
+        },
+        {
+          "answer": "A"
+        },
+        {
+          "answer": "Y"
+        }
+      ],
+      [
+        {
+          "answer": "A"
+        },
+        {
+          "answer": "W"
+        },
+        {
+          "answer": "A"
+        },
+        {
+          "answer": "K"
+        },
+        {
+          "answer": "E"
+        }
+      ],
+      [
+        {
+          "answer": "B"
+        },
+        {
+          "answer": "E"
+        },
+        {
+          "answer": "G"
+        },
+        {
+          "answer": "E"
+        },
+        {
+          "answer": "T"
+        }
+      ],
+      [
+        {
+          "block": true
+        },
+        {
+          "answer": "R"
+        },
+        {
+          "answer": "E"
+        },
+        {
+          "answer": "D"
+        },
+        {
+          "block": true
+        }
+      ]
+    ]
+  },
+  "entries": [
+    {
+      "id": "1A",
+      "direction": "across",
+      "row": 0,
+      "col": 1,
+      "answer": "LAW",
+      "clue": "Raven Johnson to Washington, per the draft's unwritten rule.",
+      "voice": "wry"
+    },
+    {
+      "id": "1D",
+      "direction": "down",
+      "row": 0,
+      "col": 1,
+      "answer": "LOWER",
+      "clue": "Shepard's rebounding total was anything but, last night.",
+      "voice": "wry"
+    },
+    {
+      "id": "2D",
+      "direction": "down",
+      "row": 0,
+      "col": 2,
+      "answer": "ADAGE",
+      "clue": "Old saying Paige might post after that t-shirt moment.",
+      "voice": "wry"
+    },
+    {
+      "id": "3D",
+      "direction": "down",
+      "row": 0,
+      "col": 3,
+      "answer": "WAKED",
+      "clue": "Roused from sleep, as a teammate might be after a buzzer-beater.",
+      "voice": "factual"
+    },
+    {
+      "id": "4A",
+      "direction": "across",
+      "row": 1,
+      "col": 0,
+      "answer": "TODAY",
+      "clue": "When top-6 teams meet on national TV, for instance.",
+      "voice": "wry"
+    },
+    {
+      "id": "4D",
+      "direction": "down",
+      "row": 1,
+      "col": 0,
+      "answer": "TAB",
+      "clue": "What A'ja's media circus runs up, apparently.",
+      "voice": "wry"
+    },
+    {
+      "id": "5D",
+      "direction": "down",
+      "row": 1,
+      "col": 4,
+      "answer": "YET",
+      "clue": "Still, as in \"the Aces haven't been dethroned ___.\"",
+      "voice": "discoursey"
+    },
+    {
+      "id": "6A",
+      "direction": "across",
+      "row": 2,
+      "col": 0,
+      "answer": "AWAKE",
+      "clue": "Not sleeping on Shepard's triple-double, for one.",
+      "voice": "discoursey"
+    },
+    {
+      "id": "7A",
+      "direction": "across",
+      "row": 3,
+      "col": 0,
+      "answer": "BEGET",
+      "clue": "One win can breed a dynasty, as the Aces have shown three times over.",
+      "voice": "factual"
+    },
+    {
+      "id": "8A",
+      "direction": "across",
+      "row": 4,
+      "col": 1,
+      "answer": "RED",
+      "clue": "Color of the Portland Fire's identity, fittingly enough.",
+      "voice": "discoursey"
+    }
+  ],
+  "season_context_version": "423903c3",
+  "generated_at": "2026-06-03T15:29:20.723591Z",
+  "model": "us.anthropic.claude-sonnet-4-6"
+}

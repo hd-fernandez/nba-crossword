@@ -1,0 +1,191 @@
+{
+  "date": "2026-06-03",
+  "slate_date": "2026-05-30",
+  "league": "nba",
+  "puzzle_number": 6,
+  "grid": {
+    "size": 5,
+    "cells": [
+      [
+        {
+          "block": true
+        },
+        {
+          "answer": "Y"
+        },
+        {
+          "answer": "A"
+        },
+        {
+          "answer": "W"
+        },
+        {
+          "block": true
+        }
+      ],
+      [
+        {
+          "answer": "S"
+        },
+        {
+          "answer": "A"
+        },
+        {
+          "answer": "F"
+        },
+        {
+          "answer": "E"
+        },
+        {
+          "answer": "R"
+        }
+      ],
+      [
+        {
+          "answer": "P"
+        },
+        {
+          "answer": "R"
+        },
+        {
+          "answer": "O"
+        },
+        {
+          "answer": "M"
+        },
+        {
+          "answer": "O"
+        }
+      ],
+      [
+        {
+          "answer": "A"
+        },
+        {
+          "answer": "D"
+        },
+        {
+          "answer": "O"
+        },
+        {
+          "answer": "B"
+        },
+        {
+          "answer": "E"
+        }
+      ],
+      [
+        {
+          "block": true
+        },
+        {
+          "answer": "S"
+        },
+        {
+          "answer": "T"
+        },
+        {
+          "answer": "Y"
+        },
+        {
+          "block": true
+        }
+      ]
+    ]
+  },
+  "entries": [
+    {
+      "id": "1A",
+      "direction": "across",
+      "row": 0,
+      "col": 1,
+      "answer": "YAW",
+      "clue": "Pivot axis for a plane, or how OKC's season ended.",
+      "voice": "wry"
+    },
+    {
+      "id": "1D",
+      "direction": "down",
+      "row": 0,
+      "col": 1,
+      "answer": "YARDS",
+      "clue": "Gained on a long drive, or what SGA ran out of in Game 7.",
+      "voice": "wry"
+    },
+    {
+      "id": "2D",
+      "direction": "down",
+      "row": 0,
+      "col": 2,
+      "answer": "AFOOT",
+      "clue": "In progress, as a Spurs Finals run now is.",
+      "voice": "discoursey"
+    },
+    {
+      "id": "3D",
+      "direction": "down",
+      "row": 0,
+      "col": 3,
+      "answer": "WEMBY",
+      "clue": "Nickname for the Spurs' towering French center.",
+      "voice": "factual"
+    },
+    {
+      "id": "4A",
+      "direction": "across",
+      "row": 1,
+      "col": 0,
+      "answer": "SAFER",
+      "clue": "More secure, as a late-series Spurs lead with Wemby still on the floor.",
+      "voice": "discoursey"
+    },
+    {
+      "id": "4D",
+      "direction": "down",
+      "row": 1,
+      "col": 0,
+      "answer": "SPA",
+      "clue": "Place to decompress, as any player on a back-to-back travel day could use.",
+      "voice": "wry"
+    },
+    {
+      "id": "5D",
+      "direction": "down",
+      "row": 1,
+      "col": 4,
+      "answer": "ROE",
+      "clue": "Fish eggs, or what a lottery-bound franchise hopes to hatch.",
+      "voice": "wry"
+    },
+    {
+      "id": "6A",
+      "direction": "across",
+      "row": 2,
+      "col": 0,
+      "answer": "PROMO",
+      "clue": "Code entered at checkout for a discount.",
+      "voice": "discoursey"
+    },
+    {
+      "id": "7A",
+      "direction": "across",
+      "row": 3,
+      "col": 0,
+      "answer": "ADOBE",
+      "clue": "Sun-dried brick used to build arena plazas in the Southwest.",
+      "voice": "factual"
+    },
+    {
+      "id": "8A",
+      "direction": "across",
+      "row": 4,
+      "col": 1,
+      "answer": "STY",
+      "clue": "Messy pen, as any locker room after a Game 7 loss.",
+      "voice": "wry"
+    }
+  ],
+  "season_context_version": "1f391562",
+  "generated_at": "2026-06-03T15:31:01.479520Z",
+  "model": "us.anthropic.claude-sonnet-4-6"
+}

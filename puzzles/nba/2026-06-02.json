@@ -1,0 +1,191 @@
+{
+  "date": "2026-06-02",
+  "slate_date": "2026-05-30",
+  "league": "nba",
+  "puzzle_number": 5,
+  "grid": {
+    "size": 5,
+    "cells": [
+      [
+        {
+          "block": true
+        },
+        {
+          "answer": "S"
+        },
+        {
+          "answer": "P"
+        },
+        {
+          "answer": "A"
+        },
+        {
+          "block": true
+        }
+      ],
+      [
+        {
+          "answer": "Y"
+        },
+        {
+          "answer": "A"
+        },
+        {
+          "answer": "R"
+        },
+        {
+          "answer": "D"
+        },
+        {
+          "answer": "S"
+        }
+      ],
+      [
+        {
+          "answer": "A"
+        },
+        {
+          "answer": "F"
+        },
+        {
+          "answer": "O"
+        },
+        {
+          "answer": "O"
+        },
+        {
+          "answer": "T"
+        }
+      ],
+      [
+        {
+          "answer": "W"
+        },
+        {
+          "answer": "E"
+        },
+        {
+          "answer": "M"
+        },
+        {
+          "answer": "B"
+        },
+        {
+          "answer": "Y"
+        }
+      ],
+      [
+        {
+          "block": true
+        },
+        {
+          "answer": "R"
+        },
+        {
+          "answer": "O"
+        },
+        {
+          "answer": "E"
+        },
+        {
+          "block": true
+        }
+      ]
+    ]
+  },
+  "entries": [
+    {
+      "id": "1A",
+      "direction": "across",
+      "row": 0,
+      "col": 1,
+      "answer": "SPA",
+      "clue": "Place to recover between games, or what some say SGA's flops deserve.",
+      "voice": "wry"
+    },
+    {
+      "id": "1D",
+      "direction": "down",
+      "row": 0,
+      "col": 1,
+      "answer": "SAFER",
+      "clue": "More secure, like a Spurs lead after Game 7.",
+      "voice": "wry"
+    },
+    {
+      "id": "2D",
+      "direction": "down",
+      "row": 0,
+      "col": 2,
+      "answer": "PROMO",
+      "clue": "Limited-time marketing offer, in ad-speak.",
+      "voice": "wry"
+    },
+    {
+      "id": "3D",
+      "direction": "down",
+      "row": 0,
+      "col": 3,
+      "answer": "ADOBE",
+      "clue": "Sun-dried brick used in building San Antonio's historic missions.",
+      "voice": "factual"
+    },
+    {
+      "id": "4A",
+      "direction": "across",
+      "row": 1,
+      "col": 0,
+      "answer": "YARDS",
+      "clue": "Football-field measures, or the steps Wemby's postgame walk to the locker room felt like.",
+      "voice": "wry"
+    },
+    {
+      "id": "4D",
+      "direction": "down",
+      "row": 1,
+      "col": 0,
+      "answer": "YAW",
+      "clue": "Pivot gone sideways — the axis OKC's season rotated off of.",
+      "voice": "wry"
+    },
+    {
+      "id": "5D",
+      "direction": "down",
+      "row": 1,
+      "col": 4,
+      "answer": "STY",
+      "clue": "Messy place, or what OKC's paint became for San Antonio in these playoffs.",
+      "voice": "discoursey"
+    },
+    {
+      "id": "6A",
+      "direction": "across",
+      "row": 2,
+      "col": 0,
+      "answer": "AFOOT",
+      "clue": "In motion, as Spurs playoff history suddenly is.",
+      "voice": "discoursey"
+    },
+    {
+      "id": "7A",
+      "direction": "across",
+      "row": 3,
+      "col": 0,
+      "answer": "WEMBY",
+      "clue": "Towering Spurs center, French by birth.",
+      "voice": "factual"
+    },
+    {
+      "id": "8A",
+      "direction": "across",
+      "row": 4,
+      "col": 1,
+      "answer": "ROE",
+      "clue": "Fish eggs — also what Thunder fans say their front office is now sitting on.",
+      "voice": "discoursey"
+    }
+  ],
+  "season_context_version": "1f391562",
+  "generated_at": "2026-06-03T15:28:24.187511Z",
+  "model": "us.anthropic.claude-sonnet-4-6"
+}
