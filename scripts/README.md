@@ -12,7 +12,7 @@ non-interactively (no browser) as long as the refresh-token chain is alive.
 ### Files
 
 - `daily-puzzle-local.sh` — generates both leagues' crosswords + Bees, commits, pushes.
-- `com.nba-crossword.daily-puzzle.plist` — launchd agent to run it daily at 11:00 local.
+- `com.nba-crossword.daily-puzzle.plist` — launchd agent to run it daily at 9:30 local.
 
 ### Run by hand
 

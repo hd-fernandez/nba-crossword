@@ -21,8 +21,8 @@
 
   NOTE: StartCalendarInterval fires at the next matching wall-clock time. If the
   Mac is asleep/off at that moment, launchd runs the job when it next wakes
-  (it does NOT stack multiple missed runs). 11:00 local ≈ after the morning
-  slate has settled; adjust Hour/Minute to taste.
+  (it does NOT stack multiple missed runs). 9:30 local — adjust Hour/Minute
+  to taste.
 -->
 <plist version="1.0">
 <dict>
@@ -38,9 +38,9 @@
     <key>StartCalendarInterval</key>
     <dict>
         <key>Hour</key>
-        <integer>11</integer>
+        <integer>9</integer>
         <key>Minute</key>
-        <integer>0</integer>
+        <integer>30</integer>
     </dict>
 
     <key>RunAtLoad</key>
