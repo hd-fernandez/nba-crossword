@@ -22,6 +22,12 @@ Project-specific artifact paths (no skill equivalent):
 - Analyses: `compound-engineering/analyses/`
 - Todos: `compound-engineering/todos/`
 
+`compound-engineering/solutions/` is a searchable store of documented learnings
+from past problems (bugs, root-cause diagnoses, conventions, workflow patterns),
+each with YAML frontmatter (`module`, `problem_type`, `tags`). Relevant when
+implementing or debugging in an area that's been worked before — a quick grep
+there can surface a prior diagnosis (e.g. grid-fill, ingest, the clue critic).
+
 ## How to Work
 
 - Read existing code before changing it.
