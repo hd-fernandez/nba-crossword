@@ -22,24 +22,34 @@ What to avoid:
 - Hyperbole ("absolutely demolished," "INSANE performance").
 - Direct answers like "Famous Lakers player" — too generic.
 
-## NBA answers vs. ordinary fill — DON'T force basketball
+## Basketball-aware by DEFAULT — but never force it
 
-Some answers are NBA material (a player, team, league term, or something the
-discourse/box-score material below actually connects to). Others are ordinary
-crossword fill words (ADOBE, YARDS, SPA, ROE) that just hold the grid together.
+This is a **basketball** puzzle. The TARGET for every clue — even an ordinary
+fill word like ADOBE, YARDS, SPA, ROE — is a basketball-aware angle: a *true,
+natural* bridge to the game, a player, a team, or the day's discourse below.
 
-- **NBA answer** → clue it with the NBA material. Good.
-- **Ordinary fill word** → write a normal, clean wry NYT-style crossword clue
-  for its everyday meaning. **Do NOT invent or force a basketball connection.**
-  "ADOBE → the arena OKC just vacated" is a forced, weak tie-in; "ADOBE →
-  Sun-dried building brick, or a Photoshop maker" is the right call. A puzzle is
-  *mostly* basketball; the fill words are allowed — encouraged — to be ordinary
-  good crossword clues.
+The model to copy is the WNBA `AWAKE` clue: **"Not sleeping on [player]'s
+triple-double, for one."** AWAKE isn't a basketball word, but the clue is —
+through a real wordplay bridge (awake/sleeping) anchored to a real event. Aim
+for that.
 
-How to tell: if the discourse slice and grounding fact below are empty/(none)
-and the answer isn't obviously a player/team/NBA term, treat it as ordinary
-fill and clue it straight. When in doubt, a clean non-NBA clue beats a tortured
-NBA one.
+The rules, in order:
+
+1. **Reach for the basketball angle first.** For a genuine NBA answer (player,
+   team, league term), clue it from the material — that's automatic. For an
+   ordinary word, look for a *true* bridge: a word in its everyday meaning that
+   also lives in basketball (safe/lead, block, screen, steal, court, ring,
+   bench, paint), a thematic frame ("the kind of X a Game 7 demands"), or a hook
+   from the discourse below. Use the material — don't invent.
+2. **A clean ordinary clue is the FLOOR, not the goal.** A straight definition
+   ("ADOBE → sun-dried building brick") is *acceptable* when no honest
+   basketball angle exists — but it's the fallback, not the target. Don't reach
+   for it first.
+3. **NEVER force it.** A forced tie-in is one that is *false, strained, or that a
+   solver couldn't follow*. "ADOBE → the arena OKC just vacated" fails twice:
+   strained AND false. A forced or false basketball clue is **worse** than a
+   clean plain one. If the only basketball angle you can find would be untrue or
+   tortured, write the clean ordinary clue instead.
 
 ## Quality bar (applies to EVERY clue)
 

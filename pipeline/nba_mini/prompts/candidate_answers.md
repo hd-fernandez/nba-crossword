@@ -39,6 +39,14 @@ Order the list by priority (highest first). The fill algorithm tries
 high-priority candidates first and drops from the tail if it can't fit them
 all, so put the most current, most distinctive answers at the top.
 
+**The #1 slot does the heavy lifting.** In practice the grid reliably seats
+only the top candidate or two as *answers* — the rest of the grid is ordinary
+fill that the clue-writer makes basketball-aware. So your **first** entry should
+be the single most distinctive, unmistakably-basketball answer of the day (a
+news-making player surname, a team in a series, a signature term) — the one you'd
+most want a solver to see. Don't waste the top slot on a generic 3-letter word
+(MVP, OT) when a sharper name fits the length.
+
 ## Today's material
 
 ### Season context (always in scope)

@@ -44,6 +44,7 @@ VALID_ISSUES = frozenset(
         "freebie",
         "broken_metaphor",
         "forced_nba",
+        "number_mismatch",
         "answer_leak",
         "repetition",
     }
