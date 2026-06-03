@@ -172,7 +172,7 @@ export function BeePage({ league }: BeePageProps) {
           >
             {league !== "combined" && <LeagueToggle current={league} />}
             <a
-              href={`/${league === "combined" ? "" : league}`}
+              href={withBasePath(`/${league === "combined" ? "" : league}`)}
               style={{
                 fontSize: 12,
                 color: "rgba(255,253,246,0.7)",

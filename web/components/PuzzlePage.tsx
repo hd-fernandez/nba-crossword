@@ -337,7 +337,7 @@ export function PuzzlePage({ league }: PuzzlePageProps) {
 function BeeLinkChip({ league, accent }: { league: League; accent: string }) {
   return (
     <a
-      href={`/${league}/bee`}
+      href={withBasePath(`/${league}/bee`)}
       data-testid="bee-link-chip"
       style={{
         display: "inline-flex",
@@ -373,7 +373,7 @@ function CrossLeagueChip({
   const cfg = configFor(ol);
   return (
     <a
-      href={`/${ol}`}
+      href={withBasePath(`/${ol}`)}
       data-testid="cross-league-chip"
       style={{
         display: "inline-flex",
