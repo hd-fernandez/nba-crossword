@@ -84,7 +84,11 @@ SOFT_LENGTH_LIMIT = 80   # warn-only target the prompt asks the model to hit
 # Retry budgets.
 MAX_ATTEMPTS = 3          # total prompt attempts per entry before fallback
 LLM_OUTAGE_RETRIES = 2    # retries on raw LLM exception (in addition to first try)
-MAX_CRITIC_ROUNDS = 2     # critic-driven regeneration passes over the puzzle
+MAX_CRITIC_ROUNDS = 4     # critic-driven regeneration passes over the puzzle.
+# Bumped 2 -> 4 on 2026-06-03: the tightened critic rubric (contradiction /
+# number_mismatch / stricter hallucination) catches more real defects, and 2
+# rounds left known-bad clues shipping ("critic budget exhausted"). This is a
+# once-daily batch — extra LLM rounds are cheap, a bad clue is not.
 
 PROMPTS_DIR = Path(__file__).resolve().parent / "prompts"
 PROMPT_FILES: dict[Voice, str] = {
