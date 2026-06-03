@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  launchd agent for the local daily-puzzle generator.
+
+  This is the laptop stopgap while the GitHub cron is blocked on AWS OIDC setup
+  (see compound-engineering/reference/bedrock-oidc-admin-handoff.md). It runs
+  scripts/daily-puzzle-local.sh once a day.
+
+  INSTALL:
+    cp scripts/com.nba-crossword.daily-puzzle.plist ~/Library/LaunchAgents/
+    launchctl load ~/Library/LaunchAgents/com.nba-crossword.daily-puzzle.plist
+
+  CHECK / RUN NOW / LOGS:
+    launchctl list | grep nba-crossword
+    launchctl start com.nba-crossword.daily-puzzle
+    tail -f /tmp/nba-crossword-daily.log
+
+  UNINSTALL:
+    launchctl unload ~/Library/LaunchAgents/com.nba-crossword.daily-puzzle.plist
+    rm ~/Library/LaunchAgents/com.nba-crossword.daily-puzzle.plist
+
+  NOTE: StartCalendarInterval fires at the next matching wall-clock time. If the
+  Mac is asleep/off at that moment, launchd runs the job when it next wakes
+  (it does NOT stack multiple missed runs). 11:00 local ≈ after the morning
+  slate has settled; adjust Hour/Minute to taste.
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.nba-crossword.daily-puzzle</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>/Users/HFernandez/Developer/nba-crossword/scripts/daily-puzzle-local.sh</string>
+    </array>
+
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key>
+        <integer>11</integer>
+        <key>Minute</key>
+        <integer>0</integer>
+    </dict>
+
+    <key>RunAtLoad</key>
+    <false/>
+
+    <key>StandardOutPath</key>
+    <string>/tmp/nba-crossword-daily.log</string>
+    <key>StandardErrorPath</key>
+    <string>/tmp/nba-crossword-daily.log</string>
+
+    <!-- Give the job a real login-shell PATH so uv/git/aws resolve. -->
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+    </dict>
+</dict>
+</plist>
