@@ -31,4 +31,15 @@ Project-specific artifact paths (no skill equivalent):
 
 ## Project Rules
 
-(To be filled in as design decisions are made — stack choices, data sources, deployment target, etc.)
+### Puzzle content — keep it basketball
+- The puzzle must read as a **basketball** puzzle: lean toward NBA/WNBA **answers** AND basketball-aware **clues**, not just one good NBA answer surrounded by generic fill. (Round-1's "don't force basketball on fill words" over-corrected — see round-2 markup in `compound-engineering/analyses/2026-06-02-clue-rating-batch-round2.md`.)
+- Non-basketball answers are fine **if the clue is basketball-aware** (the WNBA `AWAKE` → "not sleeping on [player]'s triple-double" pattern is the bar). A clean non-NBA fill clue is the *floor* of acceptable, not the target.
+- No factual misses in clues. The critic must catch these — two that slipped through round 2: claiming a team lacked home court when it had it; pluralization mismatches (clue for a singular when the answer is plural).
+
+### Grid fill (`pipeline/nba_mini/grid.py`)
+- The fill reliably seats **1 candidate (basketball) answer** per grid against the current v0 wordlist. Seating **2+** is gated by **wordlist richness**, not the fill algorithm — verified 2026-06-03: even a trivial pool like `[STEAL, BLOCK]` cannot cross both into the 4-corner template at a 200k-step budget, because the thin wordlist can't thread real words around two forced answers. The deferred **frequency-filtered wordlist expansion** is the real lever; backtracker tuning is not. (A 466-line iterative-deepening rewrite was tried and reverted — it added no seating gain and pushed worst-case latency to ~30s.)
+- A single `fill_grid` call taking **10–20s is acceptable** (once-daily pipeline). Don't sacrifice correctness (real-words-only, no duplicate answers, distinct grids per date) to shave seconds.
+- Distinct grids per date come from distinct **inputs** (per-date seed + per-date candidate pool), not from seating more candidates. "Identical grids" is an input-sameness symptom, not a fill-algorithm one.
+
+### Performance posture
+- This is a once-a-day batch pipeline. Favor correctness and content quality over latency everywhere unless a step becomes a genuine dev-loop drag.

@@ -29,20 +29,24 @@ Your exact round-1 gripes, re-checked:
 
 ---
 
+to save you spoilers, my overall feedback is we've gone too far away from basketball. need the clue generation and review to actually make basketball clues. also Grid A and B look identical. 
+
 ## NBA — Grid A (2026-06-02)
 
 | # | Answer | Voice | Clue | Verdict |
 |---|--------|-------|------|---------|
-| A1 | SPA | wry | Place of rest and recovery, which playoff teams could use right now. | |
-| A2 | SAFER | wry | More secure, and how OKC's path to the Finals would've felt with home court. | |
-| A3 | PROMO | wry | Limited-time deal, in ad-speak. | |
-| A4 | ADOBE | factual | Sun-dried brick material used in Southwestern architecture. | |
-| A5 | YARDS | wry | Three feet, by definition. | |
-| A6 | YAW | wry | Rotate around the vertical axis, as a plane — or a bewildered Thunder fan — might. | |
-| A7 | STY | discoursey | Muddy pen for farm animals. | |
-| A8 | AFOOT | discoursey | In play, as late-May basketball plans tend to be. | |
-| A9 | WEMBY | factual | Spurs center who recorded his first career ejection last week. | |
-| A10 | ROE | discoursey | Fish eggs. | |
+| A1 | SPA | wry | Place of rest and recovery, which playoff teams could use right now. | keep |
+| A2 | SAFER | wry | More secure, and how OKC's path to the Finals would've felt with home court. | fix -- OKC DID HAVE home court. right idea, wront execution |
+| A3 | PROMO | wry | Limited-time deal, in ad-speak. | keep|
+| A4 | ADOBE | factual | Sun-dried brick material used in Southwestern architecture. | keep (perfect) |
+| A5 | YARDS | wry | Three feet, by definition. | fix (should be yard plural) |
+| A6 | YAW | wry | Rotate around the vertical axis, as a plane — or a bewildered Thunder fan — might. | keep (good)|
+| A7 | STY | discoursey | Muddy pen for farm animals. | keep |
+| A8 | AFOOT | discoursey | In play, as late-May basketball plans tend to be. | (keep)... not great but it's okay. this is sort of the floor of what's acceptable |
+| A9 | WEMBY | factual | Spurs center who recorded his first career ejection last week. | perfect. more like this |
+| A10 | ROE | discoursey | Fish eggs. | i mean fine. maybe a playbe on basketball words is possible here |
+
+overall fine but this is hardly basketball related. "wemby" is the only basketball answer, and there are hardly any basketball clues? we need to tighten the clue and answer generation in a big way. 
 
 ## NBA — Grid B (2026-05-30)
 
@@ -59,6 +63,8 @@ Your exact round-1 gripes, re-checked:
 | B9 | WEMBY | factual | Spurs center who recorded his first career ejection last week. | |
 | B10 | ROE | discoursey | Fish eggs, or what GMs gamble with at the lottery. | |
 
+  these clues above look identical to nBA GRID A
+
 ## WNBA — Grid C (2026-06-02)
 
 | # | Answer | Voice | Clue | Verdict |
@@ -70,11 +76,11 @@ Your exact round-1 gripes, re-checked:
 | C5 | TODAY | wry | The present moment, which the Fever keep making into a headline. | |
 | C6 | TAB | wry | Bar bill, or what the league's growth is running up for future investors. | |
 | C7 | YET | discoursey | Word that trails every "the Aces haven't been dethroned" take. | |
-| C8 | AWAKE | discoursey | Not sleeping on Jessica Shepard's historic triple-double, for one. | |
+| C8 | AWAKE | discoursey | Not sleeping on Jessica Shepard's historic triple-double, for one. | this is a good example for NON BASKETBALL related answer, but a good basketball related clue |
 | C9 | BEGET | factual | Produce, as one dynasty tends to another. | |
 | C10 | RED | discoursey | Color of Kiki Rice's Toronto Tempo uniform. | |
 
----
+i can't support this grid, same as NBA's it needs to lean much more basketball related. 
 
 ## My own read (candidates for your attention)
 
