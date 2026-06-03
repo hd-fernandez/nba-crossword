@@ -21,8 +21,9 @@ PIPELINE="${REPO}/pipeline"
 export AWS_PROFILE="nba-bedrock"
 export AWS_REGION="us-east-1"
 export NBA_MINI_LLM_BACKEND="bedrock"
-# Make the SSO + git tooling reachable when launchd runs us with a bare PATH.
-export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:${PATH:-}"
+# Make the toolchain reachable when launchd runs us with a bare PATH.
+# uv lives in miniconda's bin on this machine; aws/git/gh in homebrew + system.
+export PATH="/Users/HFernandez/miniconda3/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:${PATH:-}"
 
 # Optional args: <date> and/or --force (same shape as the workflow_dispatch inputs).
 DATE_ARG=""
