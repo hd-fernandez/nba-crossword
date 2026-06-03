@@ -53,8 +53,24 @@ jobs:
           # Required so the final `git push` reuses GITHUB_TOKEN credentials.
           persist-credentials: true
 
+      # Preflight: fail loudly with an actionable message if the OIDC role
+      # variable is missing. Without this, configure-aws-credentials dies with
+      # the cryptic "Could not load credentials from any providers" — which is
+      # what masked the real cause (the AWS-side IAM setup was never done; see
+      # compound-engineering/reference/bedrock-oidc-admin-handoff.md).
+      - name: Preflight — Bedrock role variable is set
+        run: |
+          if [ -z "${{ vars.AWS_BEDROCK_ROLE_ARN }}" ]; then
+            echo "::error::AWS_BEDROCK_ROLE_ARN repo variable is unset. The Bedrock OIDC role"
+            echo "::error::has not been created/wired yet. Run the admin handoff:"
+            echo "::error::compound-engineering/reference/bedrock-oidc-admin-handoff.md"
+            exit 1
+          fi
+
       - name: Configure AWS credentials (Bedrock via OIDC)
-        uses: aws-actions/configure-aws-credentials@v4
+        # v6 runs on Node 24 — past the v4 Node-20 deprecation (forced
+        # migration 2026-06-16). Latest major as of 2026-06.
+        uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: ${{ vars.AWS_BEDROCK_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
