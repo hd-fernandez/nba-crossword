@@ -42,10 +42,21 @@ from nba_mini.schema import GRID_SIZE, BlockCell, Cell, Direction, Grid, LetterC
 
 logger = logging.getLogger(__name__)
 
-# Cap on total recursive descents during fill. ~2s on a modern laptop for v0.
-# Bumped only if real puzzle inputs blow through it — first remediation
-# should be a wider wordlist, not a higher cap.
-MAX_BACKTRACK_STEPS = 10_000
+# Cap on total recursive descents during ONE template attempt. This is a
+# per-template budget: when it's hit, that template is abandoned and the next
+# one in the (seed-shuffled) order is tried. With multiple registered templates
+# of uneven difficulty, a tight cap is what keeps worst-case latency bounded —
+# a template the thin wordlist can't seat the candidates into bails fast and
+# falls through to an easier one instead of grinding. The dominant production
+# cost is the candidate-drop cascade (try to seat each of ~6 candidates, fail,
+# drop, retry) repeated across the shuffled templates; a tight cap bounds it.
+# Tuned 2026-06-04 against the real path (a 6-candidate pool over real date
+# seeds, 3 templates): cap=3000 → worst ~14s with 0 fill failures and full
+# 3-shape variety, inside the project's 10-20s once-daily budget. Lower trades
+# seating rate for latency; raise it and worst-case creeps past 20s. The real
+# lever for seating MORE basketball answers is a richer wordlist (see CLAUDE.md),
+# not a bigger cap.
+MAX_BACKTRACK_STEPS = 3_000
 
 # How many consecutive seeds to try in pursuit of a duplicate-free grid. A
 # fully-crossed slot can rarely spell a word placed elsewhere; rather than
@@ -67,7 +78,26 @@ _TEMPLATES_BY_BLOCK_COUNT: dict[int, tuple[tuple[tuple[int, int], ...], ...]] = 
         ((0, 0), (4, 4)),  # NW + SE corners (mirror of the above)
     ),
     4: (
+        # All three are 180°-rotationally symmetric (crossword convention) and
+        # pass the slot-coverage invariant (every white cell in an across-run
+        # AND a down-run, each length >= 2). The seed shuffles which one is
+        # tried first (see `template_order` below), so the black squares move
+        # day to day — this is the lever for grid variety, not seeding a fixed
+        # shape harder. Was a single template before 2026-06-04 (every puzzle
+        # had the same 4-corner shape); now 3 → adjacent dates differ.
+        #
+        # Each fills reliably against the thin v0 wordlist AND seats a 5-letter
+        # candidate, with a worst single-attempt fill <=10s (within the project's
+        # 10-20s once-daily budget). Two further valid symmetric layouts — the
+        # diagonal pairs ((0,3),(0,4),(4,0),(4,1)) and its mirror — were tried
+        # and DROPPED: they fill, but a single attempt can take ~19s (the thin
+        # wordlist struggles to thread their long diagonal crossings), pushing
+        # worst-case daily latency past 30s. The "diamond" ((0,2),(2,0),(2,4),
+        # (4,2)) is also excluded — eight length-2 slots, fills 0/8. Re-add any
+        # of these only with a richer wordlist (the real lever; see CLAUDE.md).
         ((0, 0), (0, 4), (4, 0), (4, 4)),  # all 4 corners — clean 3+5 fill
+        ((0, 0), (0, 1), (4, 3), (4, 4)),  # top-left + bottom-right pairs
+        ((0, 0), (1, 0), (3, 4), (4, 4)),  # left + right vertical pairs
     ),
 }
 
@@ -177,12 +207,19 @@ def fill_grid(
     # enumeration before any RNG shuffling.
     wordlist_by_length = _group_wordlist_by_length(wordlist)
 
-    # Templates are tried in a seeded order. We rotate the registered tuple
-    # by `seed % len(templates)` so the same seed always hits the same
-    # primary template, but a stuck seed can fall through to the next one.
-    templates = _TEMPLATES_BY_BLOCK_COUNT[black_squares]
-    start = seed % len(templates)
-    template_order = templates[start:] + templates[:start]
+    # Shuffle the registered templates with the seed (not just rotate them) so
+    # each date explores the templates in a genuinely different order — the
+    # black squares move day to day. A plain rotation collapses to the
+    # most-fillable template (the 4-corner layout) whenever it lands early in
+    # the order, which is why adjacent dates used to share a shape; a full
+    # shuffle spreads the variety. `_fill_with_seed` returns the first template
+    # that fills, so a layout that can't seat the candidate falls through to the
+    # next. The shape order is fixed by `seed` and *stable across the dupe-retry
+    # loop below* — only the backtracker RNG varies per retry, so re-rolling for
+    # a duplicate doesn't also re-pay the (expensive) template re-exploration.
+    template_order = list(_TEMPLATES_BY_BLOCK_COUNT[black_squares])
+    random.Random(seed).shuffle(template_order)
+    template_order = tuple(template_order)
 
     # Seed-retry for duplicate avoidance: a fully-crossed slot can occasionally
     # spell a word already placed elsewhere (the "STY ×3" case). Rejecting that
@@ -202,6 +239,14 @@ def fill_grid(
             attempt_seed,
         )
         if grid is None:
+            # The first attempt already exhausts every template *and* drops all
+            # candidates before returning None — i.e. nothing the wordlist can
+            # fill exists. Re-rolling the seed can't change that, so a no-fill on
+            # attempt 0 is a true impossibility: stop now instead of grinding
+            # every retry seed. (This is the correctness-preserving speedup that
+            # keeps the genuinely-unfillable case — tiny/empty wordlist — fast.)
+            if attempt == 0:
+                break
             continue
         if first_grid is None:
             first_grid = grid
