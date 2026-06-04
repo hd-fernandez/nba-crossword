@@ -1,0 +1,191 @@
+{
+  "date": "2026-06-04",
+  "slate_date": "2026-06-03",
+  "league": "wnba",
+  "puzzle_number": 7,
+  "grid": {
+    "size": 5,
+    "cells": [
+      [
+        {
+          "block": true
+        },
+        {
+          "answer": "F"
+        },
+        {
+          "answer": "E"
+        },
+        {
+          "answer": "W"
+        },
+        {
+          "block": true
+        }
+      ],
+      [
+        {
+          "answer": "C"
+        },
+        {
+          "answer": "L"
+        },
+        {
+          "answer": "A"
+        },
+        {
+          "answer": "R"
+        },
+        {
+          "answer": "K"
+        }
+      ],
+      [
+        {
+          "answer": "A"
+        },
+        {
+          "answer": "E"
+        },
+        {
+          "answer": "R"
+        },
+        {
+          "answer": "I"
+        },
+        {
+          "answer": "E"
+        }
+      ],
+      [
+        {
+          "answer": "P"
+        },
+        {
+          "answer": "E"
+        },
+        {
+          "answer": "T"
+        },
+        {
+          "answer": "T"
+        },
+        {
+          "answer": "Y"
+        }
+      ],
+      [
+        {
+          "block": true
+        },
+        {
+          "answer": "S"
+        },
+        {
+          "answer": "H"
+        },
+        {
+          "answer": "E"
+        },
+        {
+          "block": true
+        }
+      ]
+    ]
+  },
+  "entries": [
+    {
+      "id": "1A",
+      "direction": "across",
+      "row": 0,
+      "col": 1,
+      "answer": "FEW",
+      "clue": "Indiana's roster spots occupied by household names, per most analysts.",
+      "voice": "factual"
+    },
+    {
+      "id": "1D",
+      "direction": "down",
+      "row": 0,
+      "col": 1,
+      "answer": "FLEES",
+      "clue": "Bolts from two closing defenders, as a quick point guard does.",
+      "voice": "wry"
+    },
+    {
+      "id": "2D",
+      "direction": "down",
+      "row": 0,
+      "col": 2,
+      "answer": "EARTH",
+      "clue": "Where Shepard's 22/20/10 night planted every doubter.",
+      "voice": "discoursey"
+    },
+    {
+      "id": "3D",
+      "direction": "down",
+      "row": 0,
+      "col": 3,
+      "answer": "WRITE",
+      "clue": "Put pen to paper, as a GM might after Shepard's 22/20/10 forced some roster rethinking.",
+      "voice": "discoursey"
+    },
+    {
+      "id": "4A",
+      "direction": "across",
+      "row": 1,
+      "col": 0,
+      "answer": "CLARK",
+      "clue": "Fever guard who posted 16 points, 6 assists, and 3 steals in the Fever's early-season opener.",
+      "voice": "factual"
+    },
+    {
+      "id": "4D",
+      "direction": "down",
+      "row": 1,
+      "col": 0,
+      "answer": "CAP",
+      "clue": "League spending limit that every front office is always bumping against.",
+      "voice": "discoursey"
+    },
+    {
+      "id": "5D",
+      "direction": "down",
+      "row": 1,
+      "col": 4,
+      "answer": "KEY",
+      "clue": "What every clutch triple-double stat line is, in hindsight.",
+      "voice": "wry"
+    },
+    {
+      "id": "6A",
+      "direction": "across",
+      "row": 2,
+      "col": 0,
+      "answer": "AERIE",
+      "clue": "High perch, or where Chase Center's upper deck fans watch the Valkyries settle in.",
+      "voice": "wry"
+    },
+    {
+      "id": "7A",
+      "direction": "across",
+      "row": 3,
+      "col": 0,
+      "answer": "PETTY",
+      "clue": "Small-minded, as ignoring a hard-fought handshake after a Game 7 loss would be.",
+      "voice": "wry"
+    },
+    {
+      "id": "8A",
+      "direction": "across",
+      "row": 4,
+      "col": 1,
+      "answer": "SHE",
+      "clue": "Pronoun on the MVP trophy A'ja has brought home to Las Vegas three times running.",
+      "voice": "wry"
+    }
+  ],
+  "season_context_version": "423903c3",
+  "generated_at": "2026-06-04T14:14:27.654787Z",
+  "model": "us.anthropic.claude-sonnet-4-6"
+}
