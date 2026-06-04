@@ -744,6 +744,72 @@ def test_cache_dir_env_var_is_respected(tmp_path: Path, monkeypatch) -> None:
 
 
 # ---------------------------------------------------------------------------
+# ScoreboardV3 adapter (the source the production client actually fetches)
+# ---------------------------------------------------------------------------
+
+
+def test_v3_scoreboard_adapter_reshapes_to_resultsets() -> None:
+    """V3's ``scoreboard.games`` is reshaped into the V2 GameHeader/LineScore
+    tables the parser consumes — with both teams' ids, tri-codes, and scores.
+
+    This is the Finals-Game-1 (2026-06-04) regression: ScoreboardV2 served a
+    None home-team id and only one team's line-score row for the playoff game,
+    crashing the run. V3 carries both teams cleanly; the adapter must surface
+    them.
+    """
+    from nba_mini.ingest.nba_stats import (
+        _parse_scoreboard,
+        _v3_scoreboard_to_resultsets,
+    )
+
+    v3_payload = {
+        "scoreboard": {
+            "gameDate": "2026-06-03",
+            "leagueId": "00",
+            "games": [
+                {
+                    "gameId": "0042500401",
+                    "gameStatusText": "Final",
+                    "gameEt": "2026-06-03T20:30:00Z",
+                    "period": 4,
+                    "homeTeam": {
+                        "teamId": 1610612759,
+                        "teamTricode": "SAS",
+                        "score": 95,
+                    },
+                    "awayTeam": {
+                        "teamId": 1610612752,
+                        "teamTricode": "NYK",
+                        "score": 105,
+                    },
+                }
+            ],
+        }
+    }
+
+    adapted = _v3_scoreboard_to_resultsets(v3_payload)
+    games = _parse_scoreboard(adapted, today=date(2026, 6, 4))
+
+    assert len(games) == 1
+    g = games[0]
+    assert g["game_id"] == "0042500401"
+    assert g["home_team"] == "SAS"
+    assert g["away_team"] == "NYK"
+    assert g["home_score"] == 95
+    assert g["away_score"] == 105
+    assert g["period"] == 4
+
+
+def test_v3_adapter_passes_through_v2_shaped_payload() -> None:
+    """A non-V3 payload (already in resultSets shape) is returned untouched, so
+    the adapter is safe to call unconditionally on any scoreboard payload."""
+    from nba_mini.ingest.nba_stats import _v3_scoreboard_to_resultsets
+
+    v2_shaped = _load_scoreboard_fixture()
+    assert _v3_scoreboard_to_resultsets(v2_shaped) is v2_shaped
+
+
+# ---------------------------------------------------------------------------
 # League selection
 # ---------------------------------------------------------------------------
 

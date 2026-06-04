@@ -175,14 +175,20 @@ class NbaApiStatsClient:
         self.league_id = LEAGUE_IDS[league]
 
     def fetch_scoreboard(self, game_date: date_cls) -> dict[str, Any]:
-        from nba_api.stats.endpoints import scoreboardv2  # type: ignore[import-not-found]
+        from nba_api.stats.endpoints import scoreboardv3  # type: ignore[import-not-found]
 
-        endpoint = scoreboardv2.ScoreboardV2(
+        # ScoreboardV2 serves broken line-score data for some games (notably
+        # playoff games: a None home-team id and a missing opponent row), which
+        # crashed the Finals-Game-1 run on 2026-06-04. nba_api itself flags V2
+        # as unreliable and points to V3 as the backward-compatible replacement.
+        # We fetch V3 and adapt it to the V2 ``resultSets`` shape the parser
+        # already consumes (see ``_v3_scoreboard_to_resultsets``), so the parser
+        # and its test suite stay unchanged.
+        endpoint = scoreboardv3.ScoreboardV3(
             game_date=game_date.isoformat(),
             league_id=self.league_id,
-            day_offset=0,
         )
-        return endpoint.get_dict()
+        return _v3_scoreboard_to_resultsets(endpoint.get_dict())
 
     def fetch_boxscore(self, game_id: str) -> dict[str, Any]:
         from nba_api.stats.endpoints import boxscoretraditionalv2  # type: ignore[import-not-found]
@@ -334,6 +340,84 @@ def _parse_game_date(raw: Any) -> date_cls | None:
         return date_cls.fromisoformat(s[:10])
     except ValueError:
         return None
+
+
+def _v3_scoreboard_to_resultsets(payload: dict[str, Any]) -> dict[str, Any]:
+    """Adapt a ScoreboardV3 payload into the V2 ``resultSets`` shape.
+
+    The downstream parser (``_parse_scoreboard``) and its test suite are written
+    against V2's ``GameHeader`` + ``LineScore`` tables. Rather than rewrite that
+    well-tested parser, we reshape V3's cleaner ``scoreboard.games`` list into
+    the same two tables. V3 is the source of truth for team ids, tri-codes, and
+    scores (V2 omits or nulls them for some playoff games).
+
+    A payload that doesn't look like V3 (no ``scoreboard.games``) is returned
+    unchanged, so a V2-shaped fixture or an already-adapted payload passes
+    through untouched — this keeps the function safe to call unconditionally.
+    """
+    scoreboard = payload.get("scoreboard")
+    if not isinstance(scoreboard, dict) or "games" not in scoreboard:
+        return payload
+
+    header_rows: list[list[Any]] = []
+    line_rows: list[list[Any]] = []
+    for game in scoreboard.get("games") or []:
+        game_id = game.get("gameId")
+        home = game.get("homeTeam") or {}
+        away = game.get("awayTeam") or {}
+        # V3 dates are ISO-with-zone (``2026-06-03T20:30:00Z``); the parser only
+        # reads the leading 10 chars, so this drops straight into GAME_DATE_EST.
+        game_date = game.get("gameEt") or game.get("gameTimeUTC")
+        period = game.get("period")
+
+        header_rows.append(
+            [
+                game_date,
+                game_id,
+                game.get("gameStatusText"),
+                home.get("teamId"),
+                away.get("teamId"),
+                period,
+            ]
+        )
+        for team in (home, away):
+            line_rows.append(
+                [
+                    game_id,
+                    team.get("teamId"),
+                    team.get("teamTricode"),
+                    team.get("score"),
+                    period,
+                ]
+            )
+
+    return {
+        "resultSets": [
+            {
+                "name": "GameHeader",
+                "headers": [
+                    "GAME_DATE_EST",
+                    "GAME_ID",
+                    "GAME_STATUS_TEXT",
+                    "HOME_TEAM_ID",
+                    "VISITOR_TEAM_ID",
+                    "LIVE_PERIOD",
+                ],
+                "rowSet": header_rows,
+            },
+            {
+                "name": "LineScore",
+                "headers": [
+                    "GAME_ID",
+                    "TEAM_ID",
+                    "TEAM_ABBREVIATION",
+                    "PTS",
+                    "LIVE_PERIOD",
+                ],
+                "rowSet": line_rows,
+            },
+        ]
+    }
 
 
 def _parse_scoreboard(

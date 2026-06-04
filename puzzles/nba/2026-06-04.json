@@ -1,0 +1,191 @@
+{
+  "date": "2026-06-04",
+  "slate_date": "2026-06-03",
+  "league": "nba",
+  "puzzle_number": 7,
+  "grid": {
+    "size": 5,
+    "cells": [
+      [
+        {
+          "block": true
+        },
+        {
+          "answer": "S"
+        },
+        {
+          "answer": "P"
+        },
+        {
+          "answer": "A"
+        },
+        {
+          "block": true
+        }
+      ],
+      [
+        {
+          "answer": "Y"
+        },
+        {
+          "answer": "A"
+        },
+        {
+          "answer": "R"
+        },
+        {
+          "answer": "D"
+        },
+        {
+          "answer": "S"
+        }
+      ],
+      [
+        {
+          "answer": "A"
+        },
+        {
+          "answer": "F"
+        },
+        {
+          "answer": "O"
+        },
+        {
+          "answer": "O"
+        },
+        {
+          "answer": "T"
+        }
+      ],
+      [
+        {
+          "answer": "W"
+        },
+        {
+          "answer": "E"
+        },
+        {
+          "answer": "M"
+        },
+        {
+          "answer": "B"
+        },
+        {
+          "answer": "Y"
+        }
+      ],
+      [
+        {
+          "block": true
+        },
+        {
+          "answer": "R"
+        },
+        {
+          "answer": "O"
+        },
+        {
+          "answer": "E"
+        },
+        {
+          "block": true
+        }
+      ]
+    ]
+  },
+  "entries": [
+    {
+      "id": "1A",
+      "direction": "across",
+      "row": 0,
+      "col": 1,
+      "answer": "SPA",
+      "clue": "Place where players recover between playoff games.",
+      "voice": "factual"
+    },
+    {
+      "id": "1D",
+      "direction": "down",
+      "row": 0,
+      "col": 1,
+      "answer": "SAFER",
+      "clue": "More secure, like the Knicks nursing a double-digit Game 1 lead on the Spurs.",
+      "voice": "wry"
+    },
+    {
+      "id": "2D",
+      "direction": "down",
+      "row": 0,
+      "col": 2,
+      "answer": "PROMO",
+      "clue": "Underdog's Shai foul-baiting board game, legally speaking.",
+      "voice": "discoursey"
+    },
+    {
+      "id": "3D",
+      "direction": "down",
+      "row": 0,
+      "col": 3,
+      "answer": "ADOBE",
+      "clue": "Building material as foundational as Wemby's footprint in San Antonio.",
+      "voice": "discoursey"
+    },
+    {
+      "id": "4A",
+      "direction": "across",
+      "row": 1,
+      "col": 0,
+      "answer": "YARDS",
+      "clue": "Gridiron gains, not the court's domain.",
+      "voice": "factual"
+    },
+    {
+      "id": "4D",
+      "direction": "down",
+      "row": 1,
+      "col": 0,
+      "answer": "YAW",
+      "clue": "Rotation axis for pilots, or what Wemby's spin move puts defenders through conceptually.",
+      "voice": "discoursey"
+    },
+    {
+      "id": "5D",
+      "direction": "down",
+      "row": 1,
+      "col": 4,
+      "answer": "STY",
+      "clue": "Chaotic scene after OKC's season-ending exit, informally.",
+      "voice": "wry"
+    },
+    {
+      "id": "6A",
+      "direction": "across",
+      "row": 2,
+      "col": 0,
+      "answer": "AFOOT",
+      "clue": "In motion, as a Spurs-Thunder upset most of us didn't see coming.",
+      "voice": "wry"
+    },
+    {
+      "id": "7A",
+      "direction": "across",
+      "row": 3,
+      "col": 0,
+      "answer": "WEMBY",
+      "clue": "Third-year Spur who just told OKC it doesn't have a prayer.",
+      "voice": "wry"
+    },
+    {
+      "id": "8A",
+      "direction": "across",
+      "row": 4,
+      "col": 1,
+      "answer": "ROE",
+      "clue": "Salmon eggs on a sushi menu.",
+      "voice": "wry"
+    }
+  ],
+  "season_context_version": "1f391562",
+  "generated_at": "2026-06-04T14:30:31.674597Z",
+  "model": "us.anthropic.claude-sonnet-4-6"
+}
