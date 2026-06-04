@@ -10,9 +10,11 @@ symptoms:
   - "Scoreboard endpoint returns PTS=None even for games that finished hours ago"
   - "Scoreboard lists future/scheduled games alongside completed ones"
   - "Pipeline fabricated 0-0 'finals' for games that had real scores"
+  - "ScoreboardV2 returns a None home-team id + a missing opponent row for a playoff game, crashing the parser"
 root_cause: wrong_api
 resolution_type: code_fix
-tags: [nba-api, scoreboard, boxscore, data-source, date-gating, ingest]
+tags: [nba-api, scoreboard, scoreboardv3, boxscore, data-source, date-gating, ingest, playoffs]
+updated: 2026-06-04
 ---
 
 # NBA scoreboard PTS is unreliable; trust the boxscore
@@ -86,7 +88,58 @@ boxscore-minutes confirm the game happened; `TeamStats` supplies the true score.
 - For playoff grounding, `BoxScoreSummaryV3` `seriesText`/`seriesGameNumber`
   give series state (V2 has known gaps after 4/10/2025).
 
+## Update 2026-06-04 — V2 doesn't just have flaky PTS; it serves broken data. Switch to V3.
+
+The next morning (NBA Finals **Game 1**, game id `0042500401`) the daily run
+crashed outright: `line score for game 0042500401 team None not found in
+response`. ScoreboardV2 had returned, for that one playoff game, a **`None`
+`HOME_TEAM_ID`** and **only one team's LineScore row** (NYK, with `PTS=None`),
+status still showing the tip time. The home team (San Antonio) simply wasn't in
+the payload, so the team-id lookup found nothing and raised.
+
+This is unfixable inside V2 — the data to recover the home team *isn't in the
+response*. And `nba_api` itself now emits a deprecation warning on V2: *"known
+issues with line score data … Please use ScoreboardV3 instead. ScoreboardV3 is
+fully backward compatible."* V3 returned the same game perfectly: both teams,
+tri-codes, ids, and final scores (`SAS 95, NYK 105`, status `Final`) in one
+clean call.
+
+**Fix:** fetch **ScoreboardV3** and adapt its `scoreboard.games[]` list into the
+V2 `resultSets` shape (`GameHeader` + `LineScore`) the parser already consumes,
+at the client boundary (`_v3_scoreboard_to_resultsets`). The well-tested parser
+and its whole suite stay unchanged; the V2 `resultSets` shape is now a purely
+**internal intermediate format**, not a live source.
+
+- **Map `gameEt` → `GAME_DATE_EST`** (V3 dates are ISO-with-zone; the parser
+  reads the leading 10 chars). Prefer `gameEt` over `gameTimeUTC` so a late ET
+  evening game doesn't roll to the next UTC day and trip the future-game gate.
+- **Pass-through guard:** if the payload isn't V3-shaped (`no scoreboard.games`),
+  return it untouched — so V2-shaped test fixtures and already-adapted cached
+  payloads flow through unchanged, and an unrecognized shape still fails *loud*
+  downstream (`missing 'resultSets'`) rather than silently.
+- **Skip-and-log a malformed game** (missing id / either team's id or tri-code)
+  instead of letting a `None` tri-code reach `GameSummary` validation — one bad
+  game would otherwise abort the **entire** slate (the very all-or-nothing
+  failure the switch was removing). A genuinely empty slate still →
+  `NoGamesSignal`.
+
+The boxscore-`TeamStats`-is-source-of-truth rule above **still holds** — V3 fixed
+the *crash* (missing team data), not necessarily score-field reliability. Keep
+reading final scores from the boxscore.
+
+### Added prevention
+- **Prefer ScoreboardV3.** V2 is deprecated and serves broken line-score data
+  for some games (playoffs especially). When `nba_api` prints a deprecation
+  pointer to a "fully backward compatible" successor, take it.
+- **Adapt new API → tested internal shape at the boundary** when the parser is
+  well-covered: smallest blast radius, suite stays green, no parser rewrite.
+- **A per-item ingest fault must not sink the batch.** Skip-and-log the bad
+  record; never let one malformed game `None`-poison the whole slate.
+- **Smoke-test against the real endpoint for the date that broke** (here, the
+  Finals game) — not just hand-built fixtures. (See [[2026-06-03-verify-before-you-claim]].)
+
 ## Related Issues
 
 - [[2026-06-01-provisional-state-self-correction]] — another ingest "absence vs zero" trap
 - [[2026-06-03-verify-before-you-claim]] — the "119 posts" half of the same investigation
+- [[2026-06-04-sso-token-no-refresh-unattended-jobs]] — the auth half of the same Finals-morning incident (why the local cron also didn't self-heal)
