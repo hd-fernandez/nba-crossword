@@ -809,6 +809,46 @@ def test_v3_adapter_passes_through_v2_shaped_payload() -> None:
     assert _v3_scoreboard_to_resultsets(v2_shaped) is v2_shaped
 
 
+def test_v3_adapter_skips_malformed_game_without_dropping_the_slate() -> None:
+    """A V3 game missing a team must be skipped, not allowed to poison the slate.
+
+    A malformed game (null/absent ``homeTeam``) would otherwise produce a row
+    with ``TEAM_ABBREVIATION=None``, and that None aborts the *entire* slate at
+    GameSummary validation downstream. The adapter skips the bad game and keeps
+    the good one — the all-or-nothing failure this V3 switch exists to remove.
+    """
+    from nba_mini.ingest.nba_stats import (
+        _parse_scoreboard,
+        _v3_scoreboard_to_resultsets,
+    )
+
+    payload = {
+        "scoreboard": {
+            "games": [
+                {  # malformed: no homeTeam at all
+                    "gameId": "0042500402",
+                    "gameStatusText": "Final",
+                    "gameEt": "2026-06-03T20:00:00Z",
+                    "period": 4,
+                    "awayTeam": {"teamId": 2, "teamTricode": "NYK", "score": 105},
+                },
+                {  # well-formed: must survive
+                    "gameId": "0042500401",
+                    "gameStatusText": "Final",
+                    "gameEt": "2026-06-03T20:30:00Z",
+                    "period": 4,
+                    "homeTeam": {"teamId": 1610612759, "teamTricode": "SAS", "score": 95},
+                    "awayTeam": {"teamId": 1610612752, "teamTricode": "NYK", "score": 105},
+                },
+            ]
+        }
+    }
+
+    games = _parse_scoreboard(_v3_scoreboard_to_resultsets(payload), today=date(2026, 6, 4))
+    assert [g["game_id"] for g in games] == ["0042500401"]
+    assert games[0]["home_team"] == "SAS"
+
+
 # ---------------------------------------------------------------------------
 # League selection
 # ---------------------------------------------------------------------------

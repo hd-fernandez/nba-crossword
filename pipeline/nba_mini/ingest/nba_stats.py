@@ -24,6 +24,19 @@ The default client (``NbaApiStatsClient``) imports ``nba_api`` lazily so the
 module can be imported in environments where ``nba_api`` is missing — which is
 exactly what the test suite does.
 
+Scoreboard source: V3 adapted to the V2 shape
+----------------------------------------------
+The live scoreboard is fetched from **ScoreboardV3** (``nba_api`` documents V2
+as unreliable — it served a ``None`` home-team id and a missing opponent row for
+an NBA Finals game, crashing the parser). The V3 payload is reshaped into the
+legacy V2 ``resultSets`` shape (``GameHeader`` + ``LineScore`` tables) by
+``_v3_scoreboard_to_resultsets`` *at the client boundary*, so the parser
+(``_parse_scoreboard``) and its test suite — which are written against the V2
+shape — stay unchanged. The V2 ``resultSets`` form is therefore now a purely
+**internal intermediate format**, not a live API source; the ``_RS_*`` constants
+and the parser's field names (``GAME_DATE_EST``, ``LIVE_PERIOD``, …) describe
+that intermediate shape, not a current nba.com response.
+
 Caching
 -------
 Both scoreboard and per-game box-score responses are cached as raw JSON under
@@ -298,10 +311,12 @@ def _with_retry(
 # Parsers
 # ---------------------------------------------------------------------------
 
-# Scoreboard fields we care about. ``nba_api`` returns ``resultSets`` with named
-# tables; the GameHeader and LineScore tables together have everything we need
-# to build a (game_id, home, away, scores, period) tuple without a box-score
-# call. We still call boxscore for player lines.
+# Scoreboard fields we care about. These name the tables of the V2-style
+# ``resultSets`` shape — now an *internal* intermediate format produced by
+# ``_v3_scoreboard_to_resultsets`` (the live source is ScoreboardV3; see the
+# module docstring). The GameHeader and LineScore tables together have
+# everything we need to build a (game_id, home, away, scores, period) tuple
+# without a box-score call. We still call boxscore for player lines.
 _RS_GAME_HEADER = "GameHeader"
 _RS_LINE_SCORE = "LineScore"
 _RS_PLAYER_STATS = "PlayerStats"
@@ -365,6 +380,29 @@ def _v3_scoreboard_to_resultsets(payload: dict[str, Any]) -> dict[str, Any]:
         game_id = game.get("gameId")
         home = game.get("homeTeam") or {}
         away = game.get("awayTeam") or {}
+
+        # Skip a game missing the fields the parser must have (game id + both
+        # teams' ids and tri-codes). Skipping one malformed game is strictly
+        # better than letting its None values flow downstream, where a None
+        # tri-code aborts the *entire* slate at GameSummary validation — the
+        # same all-or-nothing failure this V3 switch exists to remove. A
+        # genuinely empty slate still falls through to NoGamesSignal.
+        if not (
+            game_id
+            and home.get("teamId") is not None
+            and away.get("teamId") is not None
+            and home.get("teamTricode")
+            and away.get("teamTricode")
+        ):
+            logger.warning(
+                "v3 scoreboard: skipping game %r with missing id/team fields "
+                "(home=%r, away=%r)",
+                game_id,
+                home.get("teamTricode"),
+                away.get("teamTricode"),
+            )
+            continue
+
         # V3 dates are ISO-with-zone (``2026-06-03T20:30:00Z``); the parser only
         # reads the leading 10 chars, so this drops straight into GAME_DATE_EST.
         game_date = game.get("gameEt") or game.get("gameTimeUTC")
