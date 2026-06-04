@@ -33,15 +33,20 @@ from nba_mini.bee.schema import BeePuzzle, TierThresholds
 
 logger = logging.getLogger(__name__)
 
-# Target window for valid-name count per puzzle. Brainstorm originally
-# called for [12, 25], but empirically the v3 corpus (active rosters +
-# hand-curated greats) tops out around 10 valid names per board. Lowered
-# the floor accordingly so the generator stops logging "no board hit
-# target window" warnings on every run. Re-tune up if/when historical
-# rosters or coaches/staff get folded in.
-TARGET_MIN = 10
+# Target window for valid-name count per puzzle. Brainstorm originally called
+# for [12, 25], but the corpora are thin: empirically (measured 2026-06-04) an
+# NBA board tops out around 10 valid names and a WNBA board around 4. With the
+# floor at 10, WNBA NEVER landed in-window and NBA had only ~3 qualifying
+# boards — so the daily seed had almost nothing to choose between and the Bee
+# ping-ponged between 2-3 boards (e.g. NBA alternating RISACHER/CARLISLE). A
+# floor of 4 admits ~27 distinct NBA boards and ~5 WNBA boards across seeds, so
+# the date seed actually varies the puzzle day to day. TARGET_MID is set near
+# the realistic NBA median (not the window midpoint) so in-window boards don't
+# all tie at the same score. Re-tune up if/when the corpus grows (historical
+# rosters, coaches/staff) and boards routinely clear higher valid-name counts.
+TARGET_MIN = 4
 TARGET_MAX = 25
-TARGET_MID = (TARGET_MIN + TARGET_MAX) // 2
+TARGET_MID = 8
 
 # Center-letter "good middle weight" set. Excludes vowels (too permissive)
 # and Q/X/Z (too restrictive).
