@@ -1,0 +1,191 @@
+{
+  "date": "2026-06-05",
+  "slate_date": "2026-06-04",
+  "league": "wnba",
+  "puzzle_number": 8,
+  "grid": {
+    "size": 5,
+    "cells": [
+      [
+        {
+          "block": true
+        },
+        {
+          "answer": "C"
+        },
+        {
+          "answer": "A"
+        },
+        {
+          "answer": "B"
+        },
+        {
+          "block": true
+        }
+      ],
+      [
+        {
+          "answer": "R"
+        },
+        {
+          "answer": "O"
+        },
+        {
+          "answer": "L"
+        },
+        {
+          "answer": "E"
+        },
+        {
+          "answer": "S"
+        }
+      ],
+      [
+        {
+          "answer": "O"
+        },
+        {
+          "answer": "U"
+        },
+        {
+          "answer": "T"
+        },
+        {
+          "answer": "R"
+        },
+        {
+          "answer": "E"
+        }
+      ],
+      [
+        {
+          "answer": "B"
+        },
+        {
+          "answer": "L"
+        },
+        {
+          "answer": "A"
+        },
+        {
+          "answer": "R"
+        },
+        {
+          "answer": "E"
+        }
+      ],
+      [
+        {
+          "block": true
+        },
+        {
+          "answer": "D"
+        },
+        {
+          "answer": "R"
+        },
+        {
+          "answer": "Y"
+        },
+        {
+          "block": true
+        }
+      ]
+    ]
+  },
+  "entries": [
+    {
+      "id": "1A",
+      "direction": "across",
+      "row": 0,
+      "col": 1,
+      "answer": "CAB",
+      "clue": "Ride to the arena when the parking situation is, diplomatically, a lot.",
+      "voice": "wry"
+    },
+    {
+      "id": "1D",
+      "direction": "down",
+      "row": 0,
+      "col": 1,
+      "answer": "COULD",
+      "clue": "Cheryl Reeve thinks she ___ win in the NBA.",
+      "voice": "wry"
+    },
+    {
+      "id": "2D",
+      "direction": "down",
+      "row": 0,
+      "col": 2,
+      "answer": "ALTAR",
+      "clue": "Where Megan Gustafson would lay her career for Portland, figuratively.",
+      "voice": "wry"
+    },
+    {
+      "id": "3D",
+      "direction": "down",
+      "row": 0,
+      "col": 3,
+      "answer": "BERRY",
+      "clue": "Walter ___, the Spurs big man who suited up in Game 7.",
+      "voice": "wry"
+    },
+    {
+      "id": "4A",
+      "direction": "across",
+      "row": 1,
+      "col": 0,
+      "answer": "ROLES",
+      "clue": "What coaches define in training camp when setting rotations.",
+      "voice": "factual"
+    },
+    {
+      "id": "4D",
+      "direction": "down",
+      "row": 1,
+      "col": 0,
+      "answer": "ROB",
+      "clue": "Kristine Anigwe's role in Atlanta: backup center asked to ___ the paint.",
+      "voice": "factual"
+    },
+    {
+      "id": "5D",
+      "direction": "down",
+      "row": 1,
+      "col": 4,
+      "answer": "SEE",
+      "clue": "What fans are doing to attendance records climb — watching them rise in real time.",
+      "voice": "discoursey"
+    },
+    {
+      "id": "6A",
+      "direction": "across",
+      "row": 2,
+      "col": 0,
+      "answer": "OUTRE",
+      "clue": "Chet Holmgren's pregame wardrobe, by most arenas' standards.",
+      "voice": "discoursey"
+    },
+    {
+      "id": "7A",
+      "direction": "across",
+      "row": 3,
+      "col": 0,
+      "answer": "BLARE",
+      "clue": "What the PA system does when Caitlin Clark is announced at a road arena.",
+      "voice": "wry"
+    },
+    {
+      "id": "8A",
+      "direction": "across",
+      "row": 4,
+      "col": 1,
+      "answer": "DRY",
+      "clue": "Like the Aces' title defense so far: no moisture, no cracks.",
+      "voice": "discoursey"
+    }
+  ],
+  "season_context_version": "423903c3",
+  "generated_at": "2026-06-05T13:42:32.636643Z",
+  "model": "us.anthropic.claude-sonnet-4-6"
+}

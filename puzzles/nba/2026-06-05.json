@@ -1,0 +1,191 @@
+{
+  "date": "2026-06-05",
+  "slate_date": "2026-06-03",
+  "league": "nba",
+  "puzzle_number": 8,
+  "grid": {
+    "size": 5,
+    "cells": [
+      [
+        {
+          "block": true
+        },
+        {
+          "answer": "W"
+        },
+        {
+          "answer": "A"
+        },
+        {
+          "answer": "R"
+        },
+        {
+          "answer": "S"
+        }
+      ],
+      [
+        {
+          "block": true
+        },
+        {
+          "answer": "E"
+        },
+        {
+          "answer": "M"
+        },
+        {
+          "answer": "I"
+        },
+        {
+          "answer": "T"
+        }
+      ],
+      [
+        {
+          "answer": "E"
+        },
+        {
+          "answer": "M"
+        },
+        {
+          "answer": "P"
+        },
+        {
+          "answer": "T"
+        },
+        {
+          "answer": "Y"
+        }
+      ],
+      [
+        {
+          "answer": "A"
+        },
+        {
+          "answer": "B"
+        },
+        {
+          "answer": "L"
+        },
+        {
+          "answer": "E"
+        },
+        {
+          "block": true
+        }
+      ],
+      [
+        {
+          "answer": "R"
+        },
+        {
+          "answer": "Y"
+        },
+        {
+          "answer": "E"
+        },
+        {
+          "answer": "S"
+        },
+        {
+          "block": true
+        }
+      ]
+    ]
+  },
+  "entries": [
+    {
+      "id": "1A",
+      "direction": "across",
+      "row": 0,
+      "col": 1,
+      "answer": "WARS",
+      "clue": "Conflicts that pale, according to one Knicks-free commenter.",
+      "voice": "wry"
+    },
+    {
+      "id": "1D",
+      "direction": "down",
+      "row": 0,
+      "col": 1,
+      "answer": "WEMBY",
+      "clue": "OKC's recurring nightmare, now Finals-bound.",
+      "voice": "wry"
+    },
+    {
+      "id": "2D",
+      "direction": "down",
+      "row": 0,
+      "col": 2,
+      "answer": "AMPLE",
+      "clue": "Spurs had enough, then some.",
+      "voice": "wry"
+    },
+    {
+      "id": "3D",
+      "direction": "down",
+      "row": 0,
+      "col": 3,
+      "answer": "RITES",
+      "clue": "Playoff traditions, like the Knicks finally earning their share of them.",
+      "voice": "wry"
+    },
+    {
+      "id": "4D",
+      "direction": "down",
+      "row": 0,
+      "col": 4,
+      "answer": "STY",
+      "clue": "Pig's pen.",
+      "voice": "factual"
+    },
+    {
+      "id": "5A",
+      "direction": "across",
+      "row": 1,
+      "col": 1,
+      "answer": "EMIT",
+      "clue": "Send out, as a signal from a scorer's table buzzer.",
+      "voice": "factual"
+    },
+    {
+      "id": "6A",
+      "direction": "across",
+      "row": 2,
+      "col": 0,
+      "answer": "EMPTY",
+      "clue": "How the Thunder bench looked after that Game 7 final buzzer.",
+      "voice": "discoursey"
+    },
+    {
+      "id": "6D",
+      "direction": "down",
+      "row": 2,
+      "col": 0,
+      "answer": "EAR",
+      "clue": "What Wemby bent Pop's way when emotion hit after landing home.",
+      "voice": "discoursey"
+    },
+    {
+      "id": "7A",
+      "direction": "across",
+      "row": 3,
+      "col": 0,
+      "answer": "ABLE",
+      "clue": "Stephon Castle's composure in crunch time, for one.",
+      "voice": "wry"
+    },
+    {
+      "id": "8A",
+      "direction": "across",
+      "row": 4,
+      "col": 0,
+      "answer": "RYES",
+      "clue": "Breads worth toasting to, after a Spurs Game 7 win.",
+      "voice": "discoursey"
+    }
+  ],
+  "season_context_version": "1f391562",
+  "generated_at": "2026-06-05T13:41:10.163307Z",
+  "model": "us.anthropic.claude-sonnet-4-6"
+}
