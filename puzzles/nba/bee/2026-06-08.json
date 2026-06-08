@@ -1,0 +1,37 @@
+{
+  "date": "2026-06-08",
+  "league": "nba",
+  "bee_number": 9,
+  "center_letter": "N",
+  "outer_letters": [
+    "A",
+    "D",
+    "E",
+    "L",
+    "O",
+    "R"
+  ],
+  "valid_names": [
+    "ALLEN",
+    "LANDALE",
+    "LEONARD",
+    "ONEAL",
+    "ONEALE",
+    "RANDLE"
+  ],
+  "pangrams": [
+    "LEONARD"
+  ],
+  "tier_thresholds": {
+    "g_league_callup": 1.0,
+    "rookie": 5.0,
+    "sophomore": 12.0,
+    "vet": 22.0,
+    "all_star": 35.0,
+    "champion": 50.0,
+    "hall_of_famer": 70.0,
+    "goat": 100.0
+  },
+  "max_score": 43,
+  "generated_at": "2026-06-08T13:12:09.230937Z"
+}

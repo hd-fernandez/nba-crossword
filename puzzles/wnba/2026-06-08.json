@@ -1,0 +1,191 @@
+{
+  "date": "2026-06-08",
+  "slate_date": "2026-06-07",
+  "league": "wnba",
+  "puzzle_number": 9,
+  "grid": {
+    "size": 5,
+    "cells": [
+      [
+        {
+          "block": true
+        },
+        {
+          "block": true
+        },
+        {
+          "answer": "S"
+        },
+        {
+          "answer": "P"
+        },
+        {
+          "answer": "A"
+        }
+      ],
+      [
+        {
+          "answer": "T"
+        },
+        {
+          "answer": "A"
+        },
+        {
+          "answer": "P"
+        },
+        {
+          "answer": "I"
+        },
+        {
+          "answer": "R"
+        }
+      ],
+      [
+        {
+          "answer": "A"
+        },
+        {
+          "answer": "R"
+        },
+        {
+          "answer": "I"
+        },
+        {
+          "answer": "K"
+        },
+        {
+          "answer": "E"
+        }
+      ],
+      [
+        {
+          "answer": "M"
+        },
+        {
+          "answer": "I"
+        },
+        {
+          "answer": "L"
+        },
+        {
+          "answer": "E"
+        },
+        {
+          "answer": "S"
+        }
+      ],
+      [
+        {
+          "answer": "P"
+        },
+        {
+          "answer": "A"
+        },
+        {
+          "answer": "L"
+        },
+        {
+          "block": true
+        },
+        {
+          "block": true
+        }
+      ]
+    ]
+  },
+  "entries": [
+    {
+      "id": "1A",
+      "direction": "across",
+      "row": 0,
+      "col": 2,
+      "answer": "SPA",
+      "clue": "Where a team goes after a long road trip, or so the schedule suggests.",
+      "voice": "wry"
+    },
+    {
+      "id": "1D",
+      "direction": "down",
+      "row": 0,
+      "col": 2,
+      "answer": "SPILL",
+      "clue": "What a SLAM cover story might do about a rival's off-season moves.",
+      "voice": "discoursey"
+    },
+    {
+      "id": "2D",
+      "direction": "down",
+      "row": 0,
+      "col": 3,
+      "answer": "PIKE",
+      "clue": "Sharp-angled dive, the kind a point guard takes for a loose ball.",
+      "voice": "wry"
+    },
+    {
+      "id": "3D",
+      "direction": "down",
+      "row": 0,
+      "col": 4,
+      "answer": "ARES",
+      "clue": "God of war, and what A'ja's critics briefly forgot she is.",
+      "voice": "wry"
+    },
+    {
+      "id": "4A",
+      "direction": "across",
+      "row": 1,
+      "col": 0,
+      "answer": "TAPIR",
+      "clue": "Jungle-dwelling mammal with a prehensile snout.",
+      "voice": "discoursey"
+    },
+    {
+      "id": "4D",
+      "direction": "down",
+      "row": 1,
+      "col": 0,
+      "answer": "TAMP",
+      "clue": "Push down, as a coach might do with a rookie's shot selection early in the season.",
+      "voice": "discoursey"
+    },
+    {
+      "id": "5D",
+      "direction": "down",
+      "row": 1,
+      "col": 1,
+      "answer": "ARIA",
+      "clue": "Solo performance, like Olivia Miles dropping 28 for Minnesota in the Valkyries' building.",
+      "voice": "factual"
+    },
+    {
+      "id": "6A",
+      "direction": "across",
+      "row": 2,
+      "col": 0,
+      "answer": "ARIKE",
+      "clue": "Dallas wing's 30-point, 6-and-6 night, if you know, you know.",
+      "voice": "wry"
+    },
+    {
+      "id": "7A",
+      "direction": "across",
+      "row": 3,
+      "col": 0,
+      "answer": "MILES",
+      "clue": "Rookie of the Month, and counting.",
+      "voice": "wry"
+    },
+    {
+      "id": "8A",
+      "direction": "across",
+      "row": 4,
+      "col": 0,
+      "answer": "PAL",
+      "clue": "Teammate, in the locker room vernacular.",
+      "voice": "factual"
+    }
+  ],
+  "season_context_version": "423903c3",
+  "generated_at": "2026-06-08T13:12:08.752092Z",
+  "model": "us.anthropic.claude-sonnet-4-6"
+}
