@@ -5,12 +5,16 @@
 # OIDC/IAM setup needs an admin Henry doesn't have — see
 # compound-engineering/reference/bedrock-oidc-admin-handoff.md). This script runs
 # the same generation locally, where the `nba-bedrock` SSO profile already has
-# Bedrock access. AWS CLI v2 refreshes the SSO token non-interactively as long as
-# the refresh-token chain is alive; if it ever lapses (laptop off too long), run
-# `aws sso login --profile nba-bedrock` once to re-prime it.
+# Bedrock access. NOTE: this SSO token has NO refresh token (verified 2026-06-04;
+# `refreshToken: false` in ~/.aws/sso/cache) — the access token is short-lived
+# (~hours) and CANNOT self-refresh unattended. When it lapses, the only renewal
+# is an interactive `aws sso login --profile nba-bedrock` (browser). The
+# preflight below fails loud with that exact instruction. See
+# compound-engineering/solutions/2026-06-04-sso-token-no-refresh-unattended-jobs.md
 #
-# Wired to run daily via launchd: ~/Library/LaunchAgents/com.nba-crossword.daily-puzzle.plist
-# Manual run:  scripts/daily-puzzle-local.sh
+# Scheduling is currently PAUSED (launchd agent unloaded) — generation is manual.
+# Manual run:  aws sso login --profile nba-bedrock   # only if the token lapsed
+#              scripts/daily-puzzle-local.sh
 # Backfill:    scripts/daily-puzzle-local.sh 2026-06-02 --force
 
 set -uo pipefail
