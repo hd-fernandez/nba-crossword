@@ -432,30 +432,87 @@ def _v3_scoreboard_to_resultsets(payload: dict[str, Any]) -> dict[str, Any]:
     return {
         "resultSets": [
             {
-                "name": "GameHeader",
-                "headers": [
-                    "GAME_DATE_EST",
-                    "GAME_ID",
-                    "GAME_STATUS_TEXT",
-                    "HOME_TEAM_ID",
-                    "VISITOR_TEAM_ID",
-                    "LIVE_PERIOD",
-                ],
+                "name": _RS_GAME_HEADER,
+                "headers": list(_ADAPTED_GAME_HEADER_COLUMNS),
                 "rowSet": header_rows,
             },
             {
-                "name": "LineScore",
-                "headers": [
-                    "GAME_ID",
-                    "TEAM_ID",
-                    "TEAM_ABBREVIATION",
-                    "PTS",
-                    "LIVE_PERIOD",
-                ],
+                "name": _RS_LINE_SCORE,
+                "headers": list(_ADAPTED_LINE_SCORE_COLUMNS),
                 "rowSet": line_rows,
             },
         ]
     }
+
+
+# The exact column sets ``_v3_scoreboard_to_resultsets`` emits. These double as
+# the cache-freshness signature: the live writer only ever persists payloads in
+# this shape, so a cached scoreboard whose GameHeader columns differ predates the
+# V3 switch (a raw ScoreboardV2 blob) and must be re-fetched, not parsed — feeding
+# a stale raw-V2 payload to the parser is what crashed the June 2026 NBA slate
+# with ``team None not found``. See ``_scoreboard_cache_is_fresh``.
+_ADAPTED_GAME_HEADER_COLUMNS = (
+    "GAME_DATE_EST",
+    "GAME_ID",
+    "GAME_STATUS_TEXT",
+    "HOME_TEAM_ID",
+    "VISITOR_TEAM_ID",
+    "LIVE_PERIOD",
+)
+_ADAPTED_LINE_SCORE_COLUMNS = (
+    "GAME_ID",
+    "TEAM_ID",
+    "TEAM_ABBREVIATION",
+    "PTS",
+    "LIVE_PERIOD",
+)
+
+
+def _scoreboard_is_final(payload: dict[str, Any]) -> bool:
+    """True iff every game on an *adapted* scoreboard has finished.
+
+    Reads GAME_STATUS_TEXT from the GameHeader table. A live scoreboard fetched
+    before tip-off lists games as scheduled (``"8:30 pm ET"``) with 0-0 line
+    scores; an in-progress one shows ``"Q3 5:42"``. Only ``Final`` (incl.
+    ``Final/OT``) counts as settled. An empty slate is trivially settled (a real
+    no-games day — safe to cache so the walk-back doesn't re-fetch it).
+
+    Caching a non-final snapshot is the second half of the June 2026 stale-cache
+    bug: the pre-tip-off 0-0 stub for NBA Finals Game 3 was persisted, so every
+    later run read the stub from disk and skipped the real result forever.
+    """
+    sets = _index_result_sets(payload)
+    if _RS_GAME_HEADER not in sets:
+        return False
+    rows = _rows_as_dicts(sets[_RS_GAME_HEADER])
+    return all("final" in (row.get("GAME_STATUS_TEXT") or "").lower() for row in rows)
+
+
+def _scoreboard_cache_is_fresh(payload: dict[str, Any]) -> bool:
+    """Gate for reusing a cached scoreboard: current shape AND fully final.
+
+    Rejects two stale-cache hazards (both hit the NBA slate in June 2026):
+
+    1. **Wrong shape** — the live path only ever writes
+       ``_v3_scoreboard_to_resultsets`` output, so a cached GameHeader whose
+       columns aren't ``_ADAPTED_GAME_HEADER_COLUMNS`` is a pre-V3 raw blob.
+       Re-fetch instead of feeding it to the parser (which would crash).
+    2. **Not final** — a snapshot cached before tip-off (or mid-game) hides the
+       real result. Re-fetch so the now-final slate replaces the stub.
+
+    On any structural surprise, return False (re-fetch) rather than raising —
+    a stale *cache* should never be the thing that aborts ingest.
+    """
+    try:
+        sets = _index_result_sets(payload)
+        header = sets.get(_RS_GAME_HEADER)
+        if header is None:
+            return False
+        if tuple(header.get("headers") or ()) != _ADAPTED_GAME_HEADER_COLUMNS:
+            return False
+        return _scoreboard_is_final(payload)
+    except NBAStatsParseError:
+        return False
 
 
 def _parse_scoreboard(
@@ -861,6 +918,12 @@ def fetch_yesterday_games(
     # id, which is already globally unique across leagues.)
     sb_cache_path = cache_dir / f"scoreboard-{league}-{iso}.json"
     sb_payload = _read_cache(sb_cache_path)
+    if sb_payload is not None and not _scoreboard_cache_is_fresh(sb_payload):
+        # Stale cache: either a pre-V3 raw blob (wrong shape — would crash the
+        # parser) or a pre-tip-off / in-progress snapshot (hides the real
+        # result). Both bit the June 2026 NBA slate. Discard and re-fetch live.
+        logger.info("scoreboard cache for %s %s is stale; re-fetching", league, iso)
+        sb_payload = None
     if sb_payload is None:
         sb_payload = _with_retry(
             lambda: client.fetch_scoreboard(date),
@@ -868,7 +931,17 @@ def fetch_yesterday_games(
             config=retry,
             sleep=sleep,
         )
-        _write_cache(sb_cache_path, sb_payload)
+        # Only persist a settled slate. Caching a non-final snapshot is what let
+        # a pre-tip-off 0-0 stub mask a real game on every later run; an empty
+        # slate is settled (a genuine no-games day) and safe to cache.
+        if _scoreboard_is_final(sb_payload):
+            _write_cache(sb_cache_path, sb_payload)
+        else:
+            logger.info(
+                "not caching non-final scoreboard for %s %s (games scheduled/in-progress)",
+                league,
+                iso,
+            )
 
     # Default the future-game boundary to date+1, so ``date`` itself counts as a
     # valid past day (the original single-day semantics).

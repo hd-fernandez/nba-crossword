@@ -613,6 +613,148 @@ def test_second_call_for_same_date_is_a_cache_hit(tmp_path: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
+# Stale-cache guards (regression: June 2026 NBA Finals slate)
+#
+# Two distinct stale-cache hazards combined to silently drop the NBA crossword:
+#   1. A pre-V3 *raw* ScoreboardV2 blob on disk was read past the V3 adapter and
+#      crashed the parser ("line score ... team None not found").
+#   2. A scoreboard fetched *before tip-off* was cached as a 0-0 "scheduled"
+#      stub, so every later run read the stub and never saw the real result.
+# The fix gates cache reuse on (current adapted shape AND all games Final) and
+# refuses to persist a non-final snapshot.
+# ---------------------------------------------------------------------------
+
+
+def _scheduled_scoreboard() -> dict[str, Any]:
+    """An adapted-shape scoreboard whose only game hasn't tipped off (0-0)."""
+    return {
+        "resultSets": [
+            {
+                "name": "GameHeader",
+                "headers": [
+                    "GAME_DATE_EST",
+                    "GAME_ID",
+                    "GAME_STATUS_TEXT",
+                    "HOME_TEAM_ID",
+                    "VISITOR_TEAM_ID",
+                    "LIVE_PERIOD",
+                ],
+                "rowSet": [
+                    ["2026-05-14T20:30:00Z", "0042500301", "8:30 pm ET", 1, 2, 0]
+                ],
+            },
+            {
+                "name": "LineScore",
+                "headers": [
+                    "GAME_ID",
+                    "TEAM_ID",
+                    "TEAM_ABBREVIATION",
+                    "PTS",
+                    "LIVE_PERIOD",
+                ],
+                "rowSet": [
+                    ["0042500301", 1, "NYK", 0, 0],
+                    ["0042500301", 2, "BOS", 0, 0],
+                ],
+            },
+        ]
+    }
+
+
+def test_pre_v3_raw_cache_is_discarded_and_refetched(tmp_path: Path) -> None:
+    """A stale raw-ScoreboardV2 blob on disk must be re-fetched, not parsed.
+
+    This is the crash half of the bug: a pre-V3 payload (extra columns, null
+    team ids) sailed past the adapter and blew up the parser, aborting the whole
+    walk-back. The freshness gate detects the wrong column signature and falls
+    back to a live fetch instead.
+    """
+    cache_path = tmp_path / "scoreboard-nba-2026-05-14.json"
+    raw_v2 = {
+        "resource": "scoreboard",
+        "parameters": {},
+        "resultSets": [
+            {
+                "name": "GameHeader",
+                # Pre-V3 raw V2 columns — note GAME_SEQUENCE etc., NOT our set.
+                "headers": ["GAME_DATE_EST", "GAME_SEQUENCE", "GAME_ID"],
+                "rowSet": [["2026-05-14T00:00:00", 1, "0042500301"]],
+            }
+        ],
+    }
+    cache_path.write_text(json.dumps(raw_v2))
+
+    client = StubStatsClient(
+        scoreboard=_load_scoreboard_fixture(), boxscores=_default_boxscores()
+    )
+    result = fetch_yesterday_games(
+        date(2026, 5, 14), client=client, cache_dir=tmp_path, sleep=_no_sleep
+    )
+
+    # Re-fetched live (the good fixture) instead of crashing on the raw blob.
+    assert isinstance(result, GamesDigest)
+    assert client.scoreboard_calls == 1
+    # And the bad blob was overwritten with the fresh, final payload.
+    assert "resource" not in json.loads(cache_path.read_text())
+
+
+def test_non_final_scoreboard_is_not_cached(tmp_path: Path) -> None:
+    """A pre-tip-off / in-progress slate must never be persisted.
+
+    Caching a non-final snapshot is what let a 0-0 "scheduled" stub mask the
+    real result on every later run. Regardless of how the slate parses this
+    instant, the scoreboard cache file must not be written, so the next run
+    re-fetches and picks up the now-final data.
+    """
+    client = StubStatsClient(
+        scoreboard=_scheduled_scoreboard(), boxscores=_default_boxscores()
+    )
+    fetch_yesterday_games(
+        date(2026, 5, 14), client=client, cache_dir=tmp_path, sleep=_no_sleep
+    )
+
+    # The snapshot was non-final, so nothing should be on disk for it.
+    assert not (tmp_path / "scoreboard-nba-2026-05-14.json").exists()
+
+    # Second call must hit the network again — nothing valid was cached.
+    fetch_yesterday_games(
+        date(2026, 5, 14), client=client, cache_dir=tmp_path, sleep=_no_sleep
+    )
+    assert client.scoreboard_calls == 2
+
+
+def test_final_scoreboard_is_cached(tmp_path: Path) -> None:
+    """The happy path still caches: a fully-final slate is persisted and reused."""
+    client = StubStatsClient(
+        scoreboard=_load_scoreboard_fixture(), boxscores=_default_boxscores()
+    )
+    fetch_yesterday_games(
+        date(2026, 5, 14), client=client, cache_dir=tmp_path, sleep=_no_sleep
+    )
+    assert (tmp_path / "scoreboard-nba-2026-05-14.json").exists()
+    fetch_yesterday_games(
+        date(2026, 5, 14), client=client, cache_dir=tmp_path, sleep=_no_sleep
+    )
+    assert client.scoreboard_calls == 1  # second call served from cache
+
+
+def test_empty_slate_is_cached_as_settled(tmp_path: Path) -> None:
+    """A genuine no-games day is 'settled' and may be cached (no needless re-fetch)."""
+    client = StubStatsClient(
+        scoreboard=_empty_scoreboard(), boxscores=_default_boxscores()
+    )
+    result = fetch_yesterday_games(
+        date(2026, 5, 14), client=client, cache_dir=tmp_path, sleep=_no_sleep
+    )
+    assert isinstance(result, NoGamesSignal)
+    assert (tmp_path / "scoreboard-nba-2026-05-14.json").exists()
+    fetch_yesterday_games(
+        date(2026, 5, 14), client=client, cache_dir=tmp_path, sleep=_no_sleep
+    )
+    assert client.scoreboard_calls == 1  # empty slate served from cache
+
+
+# ---------------------------------------------------------------------------
 # Retry / error paths
 # ---------------------------------------------------------------------------
 
