@@ -1,0 +1,36 @@
+{
+  "date": "2026-06-09",
+  "league": "nba",
+  "bee_number": 10,
+  "center_letter": "M",
+  "outer_letters": [
+    "E",
+    "I",
+    "J",
+    "N",
+    "O",
+    "S"
+  ],
+  "valid_names": [
+    "JEMISON",
+    "MISSI",
+    "SIMMONS",
+    "SIMONS",
+    "SIMS"
+  ],
+  "pangrams": [
+    "JEMISON"
+  ],
+  "tier_thresholds": {
+    "g_league_callup": 1.0,
+    "rookie": 5.0,
+    "sophomore": 12.0,
+    "vet": 22.0,
+    "all_star": 35.0,
+    "champion": 50.0,
+    "hall_of_famer": 70.0,
+    "goat": 100.0
+  },
+  "max_score": 33,
+  "generated_at": "2026-06-09T15:28:36.869560Z"
+}

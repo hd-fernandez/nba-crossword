@@ -1,0 +1,191 @@
+{
+  "date": "2026-06-09",
+  "slate_date": "2026-06-08",
+  "league": "wnba",
+  "puzzle_number": 10,
+  "grid": {
+    "size": 5,
+    "cells": [
+      [
+        {
+          "block": true
+        },
+        {
+          "answer": "A"
+        },
+        {
+          "answer": "I"
+        },
+        {
+          "answer": "R"
+        },
+        {
+          "answer": "Y"
+        }
+      ],
+      [
+        {
+          "block": true
+        },
+        {
+          "answer": "F"
+        },
+        {
+          "answer": "L"
+        },
+        {
+          "answer": "E"
+        },
+        {
+          "answer": "E"
+        }
+      ],
+      [
+        {
+          "answer": "M"
+        },
+        {
+          "answer": "I"
+        },
+        {
+          "answer": "L"
+        },
+        {
+          "answer": "E"
+        },
+        {
+          "answer": "S"
+        }
+      ],
+      [
+        {
+          "answer": "O"
+        },
+        {
+          "answer": "R"
+        },
+        {
+          "answer": "E"
+        },
+        {
+          "answer": "S"
+        },
+        {
+          "block": true
+        }
+      ],
+      [
+        {
+          "answer": "M"
+        },
+        {
+          "answer": "E"
+        },
+        {
+          "answer": "R"
+        },
+        {
+          "answer": "E"
+        },
+        {
+          "block": true
+        }
+      ]
+    ]
+  },
+  "entries": [
+    {
+      "id": "1A",
+      "direction": "across",
+      "row": 0,
+      "col": 1,
+      "answer": "AIRY",
+      "clue": "Light in tone, as Miles's press conference answers tended to be.",
+      "voice": "wry"
+    },
+    {
+      "id": "1D",
+      "direction": "down",
+      "row": 0,
+      "col": 1,
+      "answer": "AFIRE",
+      "clue": "Shooting like Miles in the second quarter, say.",
+      "voice": "wry"
+    },
+    {
+      "id": "2D",
+      "direction": "down",
+      "row": 0,
+      "col": 2,
+      "answer": "ILLER",
+      "clue": "More sick, slangily — or how Miles's shot chart looked against Golden State.",
+      "voice": "wry"
+    },
+    {
+      "id": "3D",
+      "direction": "down",
+      "row": 0,
+      "col": 3,
+      "answer": "REESE",
+      "clue": "Milestone scorer, fresh off her 1,000th career point.",
+      "voice": "wry"
+    },
+    {
+      "id": "4D",
+      "direction": "down",
+      "row": 0,
+      "col": 4,
+      "answer": "YES",
+      "clue": "A'ja Wilson to a max extension offer, presumably.",
+      "voice": "discoursey"
+    },
+    {
+      "id": "5A",
+      "direction": "across",
+      "row": 1,
+      "col": 1,
+      "answer": "FLEE",
+      "clue": "Bolt, as defenders did when Miles caught fire from three.",
+      "voice": "discoursey"
+    },
+    {
+      "id": "6A",
+      "direction": "across",
+      "row": 2,
+      "col": 0,
+      "answer": "MILES",
+      "clue": "Lynx rookie set the single-game record with 8 threes against Golden State.",
+      "voice": "factual"
+    },
+    {
+      "id": "6D",
+      "direction": "down",
+      "row": 2,
+      "col": 0,
+      "answer": "MOM",
+      "clue": "Courtside constant at Fever games, per half the crowd's signs.",
+      "voice": "discoursey"
+    },
+    {
+      "id": "7A",
+      "direction": "across",
+      "row": 3,
+      "col": 0,
+      "answer": "ORES",
+      "clue": "Minerals extracted from Nevada soil, beneath Aces country.",
+      "voice": "factual"
+    },
+    {
+      "id": "8A",
+      "direction": "across",
+      "row": 4,
+      "col": 0,
+      "answer": "MERE",
+      "clue": "Just, as in what an 8-for-11 shooting night is not.",
+      "voice": "wry"
+    }
+  ],
+  "season_context_version": "423903c3",
+  "generated_at": "2026-06-09T15:28:36.336212Z",
+  "model": "us.anthropic.claude-sonnet-4-6"
+}
