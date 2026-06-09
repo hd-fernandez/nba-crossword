@@ -1,0 +1,191 @@
+{
+  "date": "2026-06-09",
+  "slate_date": "2026-06-08",
+  "league": "nba",
+  "puzzle_number": 9,
+  "grid": {
+    "size": 5,
+    "cells": [
+      [
+        {
+          "block": true
+        },
+        {
+          "block": true
+        },
+        {
+          "answer": "E"
+        },
+        {
+          "answer": "A"
+        },
+        {
+          "answer": "R"
+        }
+      ],
+      [
+        {
+          "answer": "W"
+        },
+        {
+          "answer": "E"
+        },
+        {
+          "answer": "M"
+        },
+        {
+          "answer": "B"
+        },
+        {
+          "answer": "Y"
+        }
+      ],
+      [
+        {
+          "answer": "A"
+        },
+        {
+          "answer": "M"
+        },
+        {
+          "answer": "P"
+        },
+        {
+          "answer": "L"
+        },
+        {
+          "answer": "E"
+        }
+      ],
+      [
+        {
+          "answer": "R"
+        },
+        {
+          "answer": "I"
+        },
+        {
+          "answer": "T"
+        },
+        {
+          "answer": "E"
+        },
+        {
+          "answer": "S"
+        }
+      ],
+      [
+        {
+          "answer": "S"
+        },
+        {
+          "answer": "T"
+        },
+        {
+          "answer": "Y"
+        },
+        {
+          "block": true
+        },
+        {
+          "block": true
+        }
+      ]
+    ]
+  },
+  "entries": [
+    {
+      "id": "1A",
+      "direction": "across",
+      "row": 0,
+      "col": 2,
+      "answer": "EAR",
+      "clue": "What the MSG crowd gave Wemby a full one of in Game 3.",
+      "voice": "wry"
+    },
+    {
+      "id": "1D",
+      "direction": "down",
+      "row": 0,
+      "col": 2,
+      "answer": "EMPTY",
+      "clue": "What the seats weren't, even with boos raining down at MSG.",
+      "voice": "wry"
+    },
+    {
+      "id": "2D",
+      "direction": "down",
+      "row": 0,
+      "col": 3,
+      "answer": "ABLE",
+      "clue": "Skilled enough to close out a playoff game.",
+      "voice": "wry"
+    },
+    {
+      "id": "3D",
+      "direction": "down",
+      "row": 0,
+      "col": 4,
+      "answer": "RYES",
+      "clue": "Whiskeys a Knicks fan might nurse after watching the Spurs steal Game 3.",
+      "voice": "wry"
+    },
+    {
+      "id": "4A",
+      "direction": "across",
+      "row": 1,
+      "col": 0,
+      "answer": "WEMBY",
+      "clue": "Spurs phenom who dropped 32 and 5 stocks to swing Game 3 at MSG.",
+      "voice": "discoursey"
+    },
+    {
+      "id": "4D",
+      "direction": "down",
+      "row": 1,
+      "col": 0,
+      "answer": "WARS",
+      "clue": "Star ___: epic battles, or what a 2-1 Finals series is becoming.",
+      "voice": "discoursey"
+    },
+    {
+      "id": "5D",
+      "direction": "down",
+      "row": 1,
+      "col": 1,
+      "answer": "EMIT",
+      "clue": "Send out, as a stadium PA does when it pipes crowd noise through the speakers.",
+      "voice": "factual"
+    },
+    {
+      "id": "6A",
+      "direction": "across",
+      "row": 2,
+      "col": 0,
+      "answer": "AMPLE",
+      "clue": "More than enough, as described by anyone watching Wemby's wingspan contest a shot.",
+      "voice": "discoursey"
+    },
+    {
+      "id": "7A",
+      "direction": "across",
+      "row": 3,
+      "col": 0,
+      "answer": "RITES",
+      "clue": "Pregame ceremonies, like banner-raising or anthem performances, in NBA parlance.",
+      "voice": "factual"
+    },
+    {
+      "id": "8A",
+      "direction": "across",
+      "row": 4,
+      "col": 0,
+      "answer": "STY",
+      "clue": "Pen for hogs — messy, like the paint after a physical Finals night.",
+      "voice": "wry"
+    }
+  ],
+  "season_context_version": "1f391562",
+  "generated_at": "2026-06-09T17:06:57.104852Z",
+  "model": "us.anthropic.claude-sonnet-4-6"
+}
